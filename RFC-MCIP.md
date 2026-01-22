@@ -617,6 +617,8 @@ Implementations MUST:
 3. **Weighted Consensus**: Model-specific weights based on domain expertise
 4. **Federated MCIP**: Cross-organization consensus without sharing prompts
 5. **Embedding-based Similarity**: Standard embedding requirements for semantic comparison
+6. **Local Model Support**: Integration with locally-hosted models (Ollama, llama.cpp, vLLM) and small quantized models for cost-free consensus queries
+7. **Search Integration**: RAG-enhanced verification combining model consensus with retrieval-augmented grounding
 
 ### 12.2 Research Directions
 
@@ -640,7 +642,7 @@ Implementations MUST:
 ## Appendix A: Reference Implementation
 
 A reference implementation in Python is available at:
-https://github.com/[TBD]/mcip-python
+https://github.com/lancejames221b/i2i
 
 The implementation provides:
 - Full MCIP-Full conformance
