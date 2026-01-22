@@ -395,7 +395,7 @@ Each model MUST have a capability profile:
 
 ```json
 {
-  "model_id": "claude-3-5-sonnet-20241022",
+  "model_id": "claude-sonnet-4-5-20250929",
   "provider": "anthropic",
   "task_scores": {
     "code_generation": 95,
@@ -524,15 +524,15 @@ Models MUST be identified using the format:
 ```
 
 Examples:
-- `openai/gpt-4o`
-- `anthropic/claude-3-5-sonnet-20241022`
-- `google/gemini-1.5-pro`
+- `openai/gpt-5.2`
+- `anthropic/claude-sonnet-4-5-20250929`
+- `google/gemini-3-pro-preview`
 
 ### 9.3 Required Providers
 
 Conforming implementations MUST support at least:
-- OpenAI (GPT-4 family)
-- Anthropic (Claude family)
+- OpenAI (GPT-5/o3 family)
+- Anthropic (Claude 4.5 family)
 
 RECOMMENDED additional providers:
 - Google (Gemini)
@@ -675,7 +675,7 @@ if result.consensus.level not in [ConsensusLevel.HIGH, ConsensusLevel.MEDIUM]:
 # Verify a claim from a document
 result = await mcip.verify_claim(
     "The company was founded in 1985",
-    verifiers=["gpt-4o", "claude-3-5-sonnet", "gemini-1.5-pro"]
+    verifiers=["gpt-5.2", "claude-sonnet-4-5-20250929", "gemini-3-pro-preview"]
 )
 
 if not result.verified:
