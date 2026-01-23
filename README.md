@@ -128,7 +128,7 @@ Or install from source:
 ```bash
 git clone https://github.com/lancejames221b/i2i.git
 cd i2i
-pip install -r requirements.txt
+pip install .
 ```
 
 ### Configuration
