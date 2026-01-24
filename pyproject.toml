@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "i2i"
+name = "i2i-mcip"
 version = "0.1.0"
 description = "AI-to-AI Communication Protocol - Multi-model consensus, verification, and intelligent routing"
 readme = "README.md"
@@ -12,7 +12,7 @@ requires-python = ">=3.9"
 authors = [
     {name = "Lance James", email = "lance@unit221b.com"}
 ]
-keywords = ["ai", "llm", "consensus", "multi-model", "ai-to-ai", "protocol"]
+keywords = ["ai", "llm", "consensus", "multi-model", "ai-to-ai", "protocol", "mcip"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
@@ -41,9 +42,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.12.0",
+    "respx>=0.21.0",
+    "black>=24.0.0",
     "ruff>=0.1.0",
 ]
 
@@ -56,16 +60,35 @@ Documentation = "https://github.com/lancejames221b/i2i#readme"
 Repository = "https://github.com/lancejames221b/i2i"
 Issues = "https://github.com/lancejames221b/i2i/issues"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["i2i*"]
+[tool.hatch.build.targets.wheel]
+packages = ["i2i"]
 
-[tool.setuptools.package-data]
-i2i = ["*.json"]
+[tool.hatch.build.targets.sdist]
+include = [
+    "/i2i",
+    "/config.json",
+    "/config.schema.json",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v"
+
+[tool.coverage.run]
+source = ["i2i"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py39", "py310", "py311", "py312", "py313"]
 
 [tool.ruff]
 line-length = 100

@@ -119,16 +119,39 @@ See the full specification: [RFC-MCIP.md](./RFC-MCIP.md)
 
 ## Installation
 
+### Using uv (recommended)
+
+```bash
+# Install from PyPI
+uv add i2i-mcip
+
+# Or install from source
+git clone https://github.com/lancejames221b/i2i.git
+cd i2i
+uv sync
+```
+
+### Using pip
+
 ```bash
 pip install i2i-mcip
 ```
 
-Or install from source:
+Or from source:
 
 ```bash
 git clone https://github.com/lancejames221b/i2i.git
 cd i2i
-pip install -r requirements.txt
+pip install -e .
+```
+
+### Development Setup
+
+```bash
+git clone https://github.com/lancejames221b/i2i.git
+cd i2i
+uv sync --all-extras  # Installs dev dependencies
+uv run pytest         # Run tests
 ```
 
 ### Configuration
