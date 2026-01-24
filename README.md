@@ -119,11 +119,13 @@ See the full specification: [RFC-MCIP.md](./RFC-MCIP.md)
 
 ## Installation
 
+> **Note:** The package will be available on PyPI soon. For now, please install from source.
+
 ```bash
 pip install i2i-mcip
 ```
 
-Or install from source:
+Or install from source (current method):
 
 ```bash
 git clone https://github.com/lancejames221b/i2i.git
