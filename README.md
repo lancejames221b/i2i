@@ -411,6 +411,47 @@ print(result.decision.selected_models)  # ["claude-sonnet-4-5-20250929"]
 print(result.responses[0].content)      # The actual code
 ```
 
+### Statistical Consensus Mode (Experimental)
+
+For higher confidence answers, enable **statistical mode** which queries each model multiple times to measure consistency:
+
+```python
+# Method 1: Via flag
+result = await protocol.consensus_query(
+    "What causes inflation?",
+    statistical_mode=True,
+    n_runs=5,           # Query each model 5 times
+    temperature=0.7     # Need temp > 0 for variance
+)
+
+# Method 2: Dedicated method with full control
+result = await protocol.consensus_query_statistical(
+    "What causes inflation?",
+    n_runs=5,
+    temperature=0.7,
+    outlier_threshold=2.0  # Std devs for outlier detection
+)
+
+# Access per-model statistics
+for model, stats in result.model_statistics.items():
+    print(f"{model}:")
+    print(f"  Consistency: {stats.consistency_score:.2f}")  # Higher = more confident
+    print(f"  Std Dev: {stats.intra_model_std_dev:.3f}")
+    print(f"  Outliers: {len(stats.outlier_indices)}")
+
+print(f"Overall confidence: {result.overall_confidence:.2f}")
+print(f"Cost multiplier: {result.total_cost_multiplier}x")  # 5x for n_runs=5
+```
+
+Enable via environment:
+```bash
+export I2I_STATISTICAL_MODE=true
+export I2I_STATISTICAL_N_RUNS=5
+export I2I_STATISTICAL_TEMPERATURE=0.7
+```
+
+**How it works**: Models with lower intra-run variance (more consistent) are weighted higher in consensus. This helps identify when a model is uncertain (high variance) vs confident (low variance).
+
 ### CLI
 
 ```bash
@@ -767,6 +808,7 @@ protocol = AICP()
 | Method | Description |
 |--------|-------------|
 | `consensus_query(query, models)` | Query multiple models and analyze agreement |
+| `consensus_query_statistical(query, n_runs)` | Statistical consensus with n-run variance analysis |
 | `verify_claim(claim, verifiers)` | Have models verify a claim |
 | `challenge_response(response, challengers)` | Have models critique a response |
 | `classify_question(question)` | Determine epistemic status |
@@ -865,10 +907,10 @@ The RFC defines:
 Contributions welcome! Areas of interest:
 
 - **Additional providers**: Azure OpenAI, AWS Bedrock, local models
-- **Embedding-based similarity**: Replace word overlap with semantic embeddings
 - **Streaming support**: Real-time consensus detection during streaming
 - **Web UI**: Interactive dashboard for consensus visualization
 - **Benchmarks**: Systematic evaluation on hallucination detection
+- **Statistical mode enhancements**: Temperature passthrough to providers, adaptive n_runs
 
 ---
 
