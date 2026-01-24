@@ -5,6 +5,13 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/i2i-mcip/"><img src="https://img.shields.io/pypi/v/i2i-mcip?color=blue&label=PyPI" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/i2i-mcip/"><img src="https://img.shields.io/pypi/pyversions/i2i-mcip" alt="Python versions"></a>
+  <a href="https://github.com/lancejames221b/i2i/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
+  <a href="https://github.com/lancejames221b/i2i/actions"><img src="https://img.shields.io/github/actions/workflow/status/lancejames221b/i2i/publish-to-pypi.yml?label=build" alt="Build status"></a>
+</p>
+
+<p align="center">
   <em>An open protocol for multi-model consensus, cross-verification, intelligent routing, and epistemic classification</em>
 </p>
 
