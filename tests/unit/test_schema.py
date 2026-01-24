@@ -2,7 +2,7 @@
 
 import pytest
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from i2i.schema import (
     Message,
@@ -99,9 +99,9 @@ class TestMessage:
 
     def test_message_auto_generates_timestamp(self):
         """Message should auto-generate a timestamp."""
-        before = datetime.utcnow()
+        before = datetime.now(timezone.utc)
         msg = Message(type=MessageType.QUERY, content="Test")
-        after = datetime.utcnow()
+        after = datetime.now(timezone.utc)
         assert before <= msg.timestamp <= after
 
     def test_message_with_all_fields(self):

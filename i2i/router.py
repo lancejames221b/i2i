@@ -11,7 +11,7 @@ Routes queries to the optimal model(s) based on:
 from enum import Enum
 from typing import Optional, List, Dict, Any, Tuple
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import json
 import os
@@ -1490,7 +1490,7 @@ class ModelRouter:
     def _log_performance(self, result: RoutingResult):
         """Log performance for future optimization."""
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             "task_type": result.decision.detected_task.value,
             "strategy": result.decision.strategy_used.value,
             "models_used": result.decision.selected_models,
