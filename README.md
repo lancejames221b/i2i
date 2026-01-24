@@ -268,6 +268,52 @@ LITELLM_API_KEY=sk-1234
 LITELLM_MODELS=gpt-4o,claude-3-opus,llama3.1
 ```
 
+### Perplexity (RAG-Native)
+
+i2i integrates with [Perplexity](https://perplexity.ai) for RAG-native models with built-in web search and citations:
+
+```env
+PERPLEXITY_API_KEY=pplx-...
+```
+
+Perplexity models automatically search the web and return citations:
+
+```python
+# Query with automatic web search
+result = await protocol.query(
+    "What is the current stock price of Apple?",
+    model="perplexity/sonar-pro"
+)
+print(result.content)
+print(result.citations)  # ['https://finance.yahoo.com/...', ...]
+```
+
+Available models: `sonar`, `sonar-pro`, `sonar-deep-research`, `sonar-reasoning-pro`
+
+### Search-Grounded Verification (RAG)
+
+i2i provides RAG-grounded verification that retrieves external sources before verifying claims:
+
+```python
+# Verify a claim with search grounding
+result = await protocol.verify_claim_grounded(
+    "The Eiffel Tower is 330 meters tall",
+    search_backend="brave"  # or "serpapi", "tavily"
+)
+print(f"Verified: {result.verified}")
+print(f"Confidence: {result.confidence}")
+print(f"Sources: {result.source_citations}")
+print(f"Retrieved: {result.retrieved_sources}")
+```
+
+Configure search backends:
+```env
+# Choose one or more (first configured is used as fallback)
+BRAVE_API_KEY=BSA...     # https://brave.com/search/api/
+SERPAPI_API_KEY=...      # https://serpapi.com/
+TAVILY_API_KEY=tvly-...  # https://tavily.com/
+```
+
 ### Configuring Default Models
 
 Models are **not hardcoded**. Configure via `config.json`, environment variables, or CLI:
@@ -759,6 +805,7 @@ protocol = AICP()
 | **Cohere** | Command A, Command A Reasoning | ✅ Supported |
 | **Ollama** | Llama 3.2, Mistral, CodeLlama, Phi-3, Gemma 2, etc. | ✅ Supported (Local) |
 | **LiteLLM** | 100+ models via unified proxy | ✅ Supported |
+| **Perplexity** | Sonar, Sonar Pro, Deep Research, Reasoning Pro | ✅ Supported (RAG) |
 
 ---
 
@@ -798,9 +845,9 @@ The RFC defines:
 │  ┌────────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───────────┐   │
 │  │ OpenAI │ │Anthropic │ │ Google │ │Mistral │ │Groq/Llama │   │
 │  └────────┘ └──────────┘ └────────┘ └────────┘ └───────────┘   │
-│  ┌────────┐ ┌──────────┐                                        │
-│  │ Ollama │ │ LiteLLM  │  ← Local & Proxy providers             │
-│  └────────┘ └──────────┘                                        │
+│  ┌────────┐ ┌──────────┐ ┌────────────┐                         │
+│  │ Ollama │ │ LiteLLM  │ │ Perplexity │ ← Local/Proxy/RAG       │
+│  └────────┘ └──────────┘ └────────────┘                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

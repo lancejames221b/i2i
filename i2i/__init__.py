@@ -37,6 +37,14 @@ from .config import (
     get_epistemic_models,
     DEFAULTS,
 )
+from .search import (
+    SearchBackend,
+    SearchResult,
+    SearchRegistry,
+    BraveSearchBackend,
+    SerpAPIBackend,
+    TavilySearchBackend,
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -71,4 +79,11 @@ __all__ = [
     "get_synthesis_models",
     "get_verification_models",
     "get_epistemic_models",
+    # Search/RAG
+    "SearchBackend",
+    "SearchResult",
+    "SearchRegistry",
+    "BraveSearchBackend",
+    "SerpAPIBackend",
+    "TavilySearchBackend",
 ]

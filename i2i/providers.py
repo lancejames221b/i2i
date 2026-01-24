@@ -656,6 +656,93 @@ class LiteLLMAdapter(ProviderAdapter):
         return ConfidenceLevel.MEDIUM
 
 
+class PerplexityAdapter(ProviderAdapter):
+    """
+    Adapter for Perplexity AI.
+
+    Perplexity provides RAG-native models with built-in web search and citations.
+    Uses OpenAI-compatible API at https://api.perplexity.ai
+    """
+
+    MODELS = ["sonar", "sonar-pro", "sonar-deep-research", "sonar-reasoning-pro"]
+
+    def __init__(self):
+        self.api_key = os.getenv("PERPLEXITY_API_KEY")
+        self._client = None
+
+    @property
+    def provider_name(self) -> str:
+        return "perplexity"
+
+    @property
+    def available_models(self) -> List[str]:
+        return self.MODELS
+
+    def is_configured(self) -> bool:
+        return bool(self.api_key)
+
+    @property
+    def client(self):
+        if self._client is None:
+            from openai import AsyncOpenAI
+            self._client = AsyncOpenAI(
+                api_key=self.api_key,
+                base_url="https://api.perplexity.ai"
+            )
+        return self._client
+
+    async def query(self, message: Message, model: str) -> Response:
+        start_time = time.time()
+
+        # Build messages
+        messages = []
+        if message.context:
+            for ctx_msg in message.context:
+                role = "assistant" if ctx_msg.sender else "user"
+                messages.append({"role": role, "content": ctx_msg.content})
+        messages.append({"role": "user", "content": message.content})
+
+        response = await self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0.2,  # Lower for factual queries
+        )
+
+        latency = (time.time() - start_time) * 1000
+        content = response.choices[0].message.content
+
+        # Extract citations from response (Perplexity includes search_results)
+        citations = None
+        if hasattr(response, 'search_results') and response.search_results:
+            citations = [r.get('url') for r in response.search_results if r.get('url')]
+
+        return Response(
+            message_id=message.id,
+            model=f"perplexity/{model}",
+            content=content,
+            confidence=self._extract_confidence(content),
+            citations=citations,
+            input_tokens=response.usage.prompt_tokens if response.usage else None,
+            output_tokens=response.usage.completion_tokens if response.usage else None,
+            latency_ms=latency,
+        )
+
+    def _extract_confidence(self, content: str) -> ConfidenceLevel:
+        """Heuristically extract confidence from response content."""
+        content_lower = content.lower()
+        if any(phrase in content_lower for phrase in ["i'm certain", "definitely", "absolutely", "i'm confident"]):
+            return ConfidenceLevel.VERY_HIGH
+        elif any(phrase in content_lower for phrase in ["i believe", "likely", "probably"]):
+            return ConfidenceLevel.HIGH
+        elif any(phrase in content_lower for phrase in ["i think", "possibly", "might"]):
+            return ConfidenceLevel.MEDIUM
+        elif any(phrase in content_lower for phrase in ["i'm not sure", "uncertain", "hard to say"]):
+            return ConfidenceLevel.LOW
+        elif any(phrase in content_lower for phrase in ["i don't know", "impossible to determine"]):
+            return ConfidenceLevel.VERY_LOW
+        return ConfidenceLevel.MEDIUM
+
+
 class ProviderRegistry:
     """
     Registry of all available AI providers.
@@ -677,6 +764,7 @@ class ProviderRegistry:
         self._register_adapter(CohereAdapter())
         self._register_adapter(OllamaAdapter())
         self._register_adapter(LiteLLMAdapter())
+        self._register_adapter(PerplexityAdapter())
 
     def _register_adapter(self, adapter: ProviderAdapter):
         """Register a provider adapter."""

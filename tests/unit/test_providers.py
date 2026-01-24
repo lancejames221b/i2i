@@ -467,3 +467,142 @@ class TestProviderRegistryWithLiteLLM:
         with patch.object(registry._adapters["litellm"], "is_configured", return_value=True):
             providers = registry.list_configured_providers()
             assert "litellm" in providers
+
+
+# ==================== Perplexity Adapter Tests ====================
+
+from i2i.providers import PerplexityAdapter
+
+
+class TestPerplexityAdapter:
+    """Tests for PerplexityAdapter class."""
+
+    @pytest.fixture
+    def adapter(self):
+        """Create a PerplexityAdapter instance."""
+        return PerplexityAdapter()
+
+    def test_provider_name(self, adapter):
+        """Provider name should be 'perplexity'."""
+        assert adapter.provider_name == "perplexity"
+
+    def test_available_models(self, adapter):
+        """Should list all Perplexity models."""
+        models = adapter.available_models
+        assert "sonar" in models
+        assert "sonar-pro" in models
+        assert "sonar-deep-research" in models
+        assert "sonar-reasoning-pro" in models
+
+    def test_is_configured_returns_false_without_api_key(self, adapter):
+        """is_configured should return False when no API key is set."""
+        adapter.api_key = None
+        assert adapter.is_configured() is False
+
+    def test_is_configured_returns_true_with_api_key(self):
+        """is_configured should return True when API key is set."""
+        with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "pplx-test-key"}):
+            adapter = PerplexityAdapter()
+            assert adapter.is_configured() is True
+
+    def test_client_uses_perplexity_base_url(self):
+        """Client should be configured with Perplexity base URL."""
+        with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "pplx-test-key"}):
+            adapter = PerplexityAdapter()
+            with patch("openai.AsyncOpenAI") as mock_openai:
+                _ = adapter.client
+                mock_openai.assert_called_once_with(
+                    api_key="pplx-test-key",
+                    base_url="https://api.perplexity.ai"
+                )
+
+    @pytest.mark.asyncio
+    async def test_query_returns_response(self):
+        """query should return a Response object."""
+        adapter = PerplexityAdapter()
+        adapter.api_key = "pplx-test-key"
+
+        # Mock the OpenAI client
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Test response"))]
+        mock_response.usage = MagicMock(prompt_tokens=10, completion_tokens=20)
+        mock_response.search_results = [{"url": "https://example.com"}]
+
+        mock_client = AsyncMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        adapter._client = mock_client
+
+        message = Message(type=MessageType.QUERY, content="What is Python?")
+        response = await adapter.query(message, "sonar")
+
+        assert response.content == "Test response"
+        assert response.model == "perplexity/sonar"
+        assert response.input_tokens == 10
+        assert response.output_tokens == 20
+
+    @pytest.mark.asyncio
+    async def test_query_extracts_citations(self):
+        """query should extract citations from search_results."""
+        adapter = PerplexityAdapter()
+        adapter.api_key = "pplx-test-key"
+
+        # Mock response with search_results
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Answer with citations"))]
+        mock_response.usage = MagicMock(prompt_tokens=10, completion_tokens=20)
+        mock_response.search_results = [
+            {"url": "https://example.com/1"},
+            {"url": "https://example.com/2"},
+        ]
+
+        mock_client = AsyncMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        adapter._client = mock_client
+
+        message = Message(type=MessageType.QUERY, content="Question")
+        response = await adapter.query(message, "sonar-pro")
+
+        assert response.citations == ["https://example.com/1", "https://example.com/2"]
+
+    def test_extract_confidence_very_high(self, adapter):
+        """Should extract VERY_HIGH confidence."""
+        assert adapter._extract_confidence("I'm certain this is correct") == ConfidenceLevel.VERY_HIGH
+
+    def test_extract_confidence_high(self, adapter):
+        """Should extract HIGH confidence."""
+        assert adapter._extract_confidence("I believe this is true") == ConfidenceLevel.HIGH
+
+    def test_extract_confidence_medium(self, adapter):
+        """Should extract MEDIUM confidence."""
+        assert adapter._extract_confidence("I think it might be") == ConfidenceLevel.MEDIUM
+
+    def test_extract_confidence_low(self, adapter):
+        """Should extract LOW confidence."""
+        assert adapter._extract_confidence("I'm not sure about this") == ConfidenceLevel.LOW
+
+    def test_extract_confidence_very_low(self, adapter):
+        """Should extract VERY_LOW confidence."""
+        assert adapter._extract_confidence("I don't know the answer") == ConfidenceLevel.VERY_LOW
+
+
+class TestProviderRegistryWithPerplexity:
+    """Tests for ProviderRegistry with Perplexity integration."""
+
+    def test_registry_includes_perplexity(self):
+        """ProviderRegistry should include Perplexity adapter."""
+        registry = ProviderRegistry()
+        assert "perplexity" in registry._adapters
+
+    def test_get_adapter_with_perplexity_prefix(self):
+        """get_adapter should work with 'perplexity/' prefix."""
+        registry = ProviderRegistry()
+        adapter = registry.get_adapter("perplexity/sonar")
+        assert isinstance(adapter, PerplexityAdapter)
+
+    def test_list_configured_providers_includes_perplexity_when_configured(self):
+        """list_configured_providers should include Perplexity when API key is set."""
+        registry = ProviderRegistry()
+
+        with patch.object(registry._adapters["perplexity"], "is_configured", return_value=True):
+            providers = registry.list_configured_providers()
+            assert "perplexity" in providers

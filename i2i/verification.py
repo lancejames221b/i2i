@@ -78,6 +78,98 @@ class VerificationEngine:
             corrections=corrections,
         )
 
+    async def verify_claim_with_search(
+        self,
+        claim: str,
+        verifier_models: List[str],
+        search_backend: Optional[str] = None,
+        num_sources: int = 5,
+        original_source: Optional[str] = None,
+    ) -> VerificationResult:
+        """
+        Verify a claim with search-grounded evidence (RAG verification).
+
+        This method retrieves relevant sources from the web before
+        asking verification models to evaluate the claim against those sources.
+
+        Args:
+            claim: The claim/statement to verify
+            verifier_models: Models to use for verification
+            search_backend: Specific search backend to use (optional)
+            num_sources: Number of sources to retrieve
+            original_source: Model that originally made the claim (if any)
+
+        Returns:
+            VerificationResult with source citations
+        """
+        from .search import SearchRegistry
+
+        # 1. Search for relevant sources
+        search_registry = SearchRegistry()
+        search_results = await search_registry.search(
+            claim, backend=search_backend, num_results=num_sources
+        )
+
+        # 2. Build grounded verification prompt
+        if search_results:
+            context = "\n".join([
+                f"- {r.title}: {r.snippet} ({r.url})"
+                for r in search_results
+            ])
+            grounded_prompt = f"""Verify this claim using the provided sources:
+
+CLAIM: "{claim}"
+
+RETRIEVED SOURCES:
+{context}
+
+Evaluate if the claim is SUPPORTED, CONTRADICTED, or NOT ADDRESSED by these sources.
+Cite specific sources in your reasoning by referencing their URLs.
+
+Please respond with:
+1. VERDICT: TRUE (supported by sources), FALSE (contradicted), PARTIALLY TRUE, or UNVERIFIABLE
+2. CONFIDENCE: How confident are you (HIGH, MEDIUM, LOW)?
+3. ISSUES: List any factual errors or problems with the claim
+4. CORRECTIONS: If false or partially true, provide correct information from sources
+5. REASONING: Explain your verification citing specific sources"""
+        else:
+            # Fallback to regular verification if no sources found
+            grounded_prompt = self._build_verification_prompt(claim, original_source, None)
+
+        message = Message(
+            type=MessageType.VERIFY,
+            content=grounded_prompt,
+        )
+
+        # 3. Query verifiers
+        responses = await self.registry.query_multiple(message, verifier_models)
+        valid_responses = [r for r in responses if isinstance(r, Response)]
+
+        if not valid_responses:
+            raise ValueError("All verification queries failed")
+
+        # 4. Analyze verification results
+        verified, confidence, issues, corrections = self._analyze_verification(
+            claim, valid_responses
+        )
+
+        # 5. Build result with source tracking
+        return VerificationResult(
+            original_claim=claim,
+            original_source=original_source,
+            verifiers=[r.model for r in valid_responses],
+            verification_responses=valid_responses,
+            verified=verified,
+            confidence=confidence,
+            issues_found=issues,
+            corrections=corrections,
+            source_citations=[r.url for r in search_results],
+            retrieved_sources=[
+                {"title": r.title, "url": r.url, "snippet": r.snippet}
+                for r in search_results
+            ],
+        )
+
     def _build_verification_prompt(
         self,
         claim: str,

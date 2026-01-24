@@ -93,6 +93,9 @@ class Response(BaseModel):
     output_tokens: Optional[int] = None
     latency_ms: Optional[float] = None
 
+    # RAG/Search citations
+    citations: Optional[List[str]] = None  # Source URLs from RAG providers
+
 
 class ConsensusResult(BaseModel):
     """
@@ -131,6 +134,10 @@ class VerificationResult(BaseModel):
     confidence: float                  # 0-1 confidence in verification
     issues_found: List[str] = Field(default_factory=list)
     corrections: Optional[str] = None  # Suggested corrections if not verified
+
+    # RAG/Search grounding
+    source_citations: List[str] = Field(default_factory=list)  # Source URLs used
+    retrieved_sources: List[Dict[str, Any]] = Field(default_factory=list)  # Full source info
 
     metadata: Dict[str, Any] = Field(default_factory=dict)
 

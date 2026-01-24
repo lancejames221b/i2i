@@ -215,6 +215,42 @@ class AICP:
             context=context,
         )
 
+    async def verify_claim_grounded(
+        self,
+        claim: str,
+        verifiers: Optional[List[str]] = None,
+        search_backend: Optional[str] = None,
+        num_sources: int = 5,
+        original_source: Optional[str] = None,
+    ) -> VerificationResult:
+        """
+        Verify a claim with search-grounded evidence (RAG verification).
+
+        This method retrieves relevant sources from the web before
+        asking verification models to evaluate the claim. The result
+        includes source citations for transparency.
+
+        Args:
+            claim: The claim/statement to verify
+            verifiers: Models to use for verification
+            search_backend: Search backend to use (brave, serpapi, tavily)
+            num_sources: Number of sources to retrieve (default: 5)
+            original_source: Model that originally made the claim
+
+        Returns:
+            VerificationResult with source_citations and retrieved_sources
+        """
+        if verifiers is None:
+            verifiers = self._get_default_models()[:2]
+
+        return await self.verification_engine.verify_claim_with_search(
+            claim=claim,
+            verifier_models=verifiers,
+            search_backend=search_backend,
+            num_sources=num_sources,
+            original_source=original_source,
+        )
+
     async def challenge_response(
         self,
         response: Response,
