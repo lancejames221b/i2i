@@ -7,7 +7,8 @@ name = "i2i-mcip"
 version = "0.1.0"
 description = "AI-to-AI Communication Protocol - Multi-model consensus, verification, and intelligent routing"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+license_files = ["LICENSE"]
 requires-python = ">=3.9"
 authors = [
     {name = "Lance James", email = "lance@unit221b.com"}
