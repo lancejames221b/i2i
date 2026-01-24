@@ -72,6 +72,45 @@
         }
       }
     },
+    "statistical_mode": {
+      "type": "object",
+      "description": "Configuration for statistical consensus mode (n-run averaging)",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable statistical mode by default"
+        },
+        "n_runs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of runs per model"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Temperature for queries (>0 required for variance)"
+        },
+        "outlier_threshold": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Standard deviations for outlier detection"
+        },
+        "use_embeddings": {
+          "type": "boolean",
+          "description": "Use embedding-based similarity (vs Jaccard)"
+        },
+        "embedding_model": {
+          "type": "string",
+          "description": "OpenAI embedding model to use"
+        },
+        "parallel_queries": {
+          "type": "boolean",
+          "description": "Run n queries in parallel"
+        }
+      }
+    },
     "providers": {
       "type": "object",
       "additionalProperties": {

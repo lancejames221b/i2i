@@ -33,6 +33,15 @@
     "max_rounds": 3,
     "require_unanimous": false
   },
+  "statistical_mode": {
+    "enabled": false,
+    "n_runs": 5,
+    "temperature": 0.7,
+    "outlier_threshold": 2.0,
+    "use_embeddings": true,
+    "embedding_model": "text-embedding-3-small",
+    "parallel_queries": true
+  },
   "providers": {
     "openai": {
       "enabled": true,
