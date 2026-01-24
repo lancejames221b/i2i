@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include RFC-MCIP.md
+include requirements.txt
+include config.json
+include config.schema.json
+recursive-include i2i *.py *.json
