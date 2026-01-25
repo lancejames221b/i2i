@@ -126,13 +126,17 @@ See the full specification: [RFC-MCIP.md](./RFC-MCIP.md)
 
 ## Installation
 
-### Using uv (recommended)
+### Using uv 
+
+#### From PyPI (Recommended)
 
 ```bash
-# Install from PyPI
 uv add i2i-mcip
+```
 
-# Or install from source
+#### From Source
+
+```bash
 git clone https://github.com/lancejames221b/i2i.git
 cd i2i
 uv sync
@@ -140,11 +144,13 @@ uv sync
 
 ### Using pip
 
+#### From PyPI
+
 ```bash
 pip install i2i-mcip
 ```
 
-Or from source:
+#### From Source
 
 ```bash
 git clone https://github.com/lancejames221b/i2i.git
@@ -877,23 +883,23 @@ The RFC defines:
 ┌─────────────────────────────────────────────────────────────────┐
 │                      MCIP Protocol Layer                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌────────────────┐  │
-│  │ Consensus │ │   Cross-  │ │ Epistemic │ │   Intelligent  │  │
+│  ┌───────────┐ ┌────────────┐ ┌───────────┐ ┌────────────────┐  │
+│  │ Consensus │ │   Cross-   │ │ Epistemic │ │   Intelligent  │  │
 │  │  Engine   │ │Verification│ │Classifier │ │    Router      │  │
-│  └───────────┘ └───────────┘ └───────────┘ └────────────────┘  │
+│  └───────────┘ └────────────┘ └───────────┘ └────────────────┘  │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │             Model Capability Matrix                        │  │
-│  │   (Task scores, latency, cost, features per model)         │  │
+│  │             Model Capability Matrix                       │  │
+│  │   (Task scores, latency, cost, features per model)        │  │
 │  └───────────────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────────┤
 │                    Message Schema Layer                         │
 │              (Standardized Request/Response Format)             │
 ├─────────────────────────────────────────────────────────────────┤
 │                   Provider Abstraction Layer                    │
-│  ┌────────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───────────┐   │
-│  │ OpenAI │ │Anthropic │ │ Google │ │Mistral │ │Groq/Llama │   │
-│  └────────┘ └──────────┘ └────────┘ └────────┘ └───────────┘   │
+│  ┌────────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───────────┐    │
+│  │ OpenAI │ │Anthropic │ │ Google │ │Mistral │ │Groq/Llama │    │
+│  └────────┘ └──────────┘ └────────┘ └────────┘ └───────────┘    │
 │  ┌────────┐ ┌──────────┐ ┌────────────┐                         │
 │  │ Ollama │ │ LiteLLM  │ │ Perplexity │ ← Local/Proxy/RAG       │
 │  └────────┘ └──────────┘ └────────────┘                         │
