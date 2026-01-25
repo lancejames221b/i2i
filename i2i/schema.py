@@ -8,7 +8,7 @@ including message types, response structures, and classification enums.
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 
@@ -63,7 +63,7 @@ class Message(BaseModel):
     recipient: Optional[str] = None    # Target model (None = broadcast)
     context: Optional[List["Message"]] = None  # Previous messages in thread
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # For challenge/verify messages
     target_message_id: Optional[str] = None  # Message being challenged/verified
