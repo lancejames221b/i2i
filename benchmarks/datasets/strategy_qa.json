@@ -1,0 +1,102 @@
+[
+  {
+    "id": "sqa001",
+    "question": "Would a vegetarian eat a ham sandwich?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa002",
+    "question": "Can a penguin fly south for winter?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa003",
+    "question": "Is it possible to see the Great Wall of China from the Moon?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa004",
+    "question": "Would a fish survive longer than a human without water?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa005",
+    "question": "Can you buy a car with only pennies?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa006",
+    "question": "Is the Sun bigger than the Earth?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa007",
+    "question": "Would a dog enjoy eating chocolate?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa008",
+    "question": "Can a smartphone make phone calls?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa009",
+    "question": "Is ice cream typically served hot?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa010",
+    "question": "Would a marathon runner need water during a race?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa011",
+    "question": "Can humans breathe underwater without equipment?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa012",
+    "question": "Is a tomato a fruit?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa013",
+    "question": "Would a library be a good place to hold a rock concert?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa014",
+    "question": "Can you fold a piece of paper more than 7 times?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa015",
+    "question": "Is the Pacific Ocean saltwater?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa016",
+    "question": "Would a nocturnal animal be active during the day?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa017",
+    "question": "Can lightning strike the same place twice?",
+    "answer": "Yes"
+  },
+  {
+    "id": "sqa018",
+    "question": "Is a whale a fish?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa019",
+    "question": "Would a desert be a good place to find fresh water?",
+    "answer": "No"
+  },
+  {
+    "id": "sqa020",
+    "question": "Can sound travel through a vacuum?",
+    "answer": "No"
+  }
+]

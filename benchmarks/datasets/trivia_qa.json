@@ -1,0 +1,252 @@
+[
+  {
+    "id": "tqa001",
+    "question": "What is the capital of Australia?",
+    "answer": "Canberra"
+  },
+  {
+    "id": "tqa002",
+    "question": "Who wrote '1984'?",
+    "answer": "George Orwell"
+  },
+  {
+    "id": "tqa003",
+    "question": "What is the largest ocean on Earth?",
+    "answer": "Pacific Ocean"
+  },
+  {
+    "id": "tqa004",
+    "question": "In which year did the Titanic sink?",
+    "answer": "1912"
+  },
+  {
+    "id": "tqa005",
+    "question": "What element has the chemical symbol 'Fe'?",
+    "answer": "Iron"
+  },
+  {
+    "id": "tqa006",
+    "question": "Who was the first person to walk on the Moon?",
+    "answer": "Neil Armstrong"
+  },
+  {
+    "id": "tqa007",
+    "question": "What is the smallest country in the world by area?",
+    "answer": "Vatican City"
+  },
+  {
+    "id": "tqa008",
+    "question": "Which planet is known as the Red Planet?",
+    "answer": "Mars"
+  },
+  {
+    "id": "tqa009",
+    "question": "What is the capital of Canada?",
+    "answer": "Ottawa"
+  },
+  {
+    "id": "tqa010",
+    "question": "Who painted 'The Starry Night'?",
+    "answer": "Vincent van Gogh"
+  },
+  {
+    "id": "tqa011",
+    "question": "What is the tallest mountain in the world?",
+    "answer": "Mount Everest"
+  },
+  {
+    "id": "tqa012",
+    "question": "In what year did World War I begin?",
+    "answer": "1914"
+  },
+  {
+    "id": "tqa013",
+    "question": "What is the chemical formula for water?",
+    "answer": "H2O"
+  },
+  {
+    "id": "tqa014",
+    "question": "Who invented the telephone?",
+    "answer": "Alexander Graham Bell"
+  },
+  {
+    "id": "tqa015",
+    "question": "What is the longest river in the world?",
+    "answer": "Nile"
+  },
+  {
+    "id": "tqa016",
+    "question": "Which country has the largest population?",
+    "answer": "China"
+  },
+  {
+    "id": "tqa017",
+    "question": "What is the capital of Brazil?",
+    "answer": "Brasilia"
+  },
+  {
+    "id": "tqa018",
+    "question": "Who wrote 'Hamlet'?",
+    "answer": "William Shakespeare"
+  },
+  {
+    "id": "tqa019",
+    "question": "What is the hardest natural substance on Earth?",
+    "answer": "Diamond"
+  },
+  {
+    "id": "tqa020",
+    "question": "In which city is the Eiffel Tower located?",
+    "answer": "Paris"
+  },
+  {
+    "id": "tqa021",
+    "question": "What is the largest mammal?",
+    "answer": "Blue whale"
+  },
+  {
+    "id": "tqa022",
+    "question": "Who developed the theory of relativity?",
+    "answer": "Albert Einstein"
+  },
+  {
+    "id": "tqa023",
+    "question": "What is the currency of Japan?",
+    "answer": "Yen"
+  },
+  {
+    "id": "tqa024",
+    "question": "Which planet has the most moons?",
+    "answer": "Saturn"
+  },
+  {
+    "id": "tqa025",
+    "question": "What is the capital of Egypt?",
+    "answer": "Cairo"
+  },
+  {
+    "id": "tqa026",
+    "question": "Who wrote 'Pride and Prejudice'?",
+    "answer": "Jane Austen"
+  },
+  {
+    "id": "tqa027",
+    "question": "What is the boiling point of water in Celsius?",
+    "answer": "100"
+  },
+  {
+    "id": "tqa028",
+    "question": "Which element is the most abundant in the Earth's atmosphere?",
+    "answer": "Nitrogen"
+  },
+  {
+    "id": "tqa029",
+    "question": "What year did the Berlin Wall fall?",
+    "answer": "1989"
+  },
+  {
+    "id": "tqa030",
+    "question": "Who composed the 'Moonlight Sonata'?",
+    "answer": "Beethoven"
+  },
+  {
+    "id": "tqa031",
+    "question": "What is the largest desert in the world?",
+    "answer": "Sahara"
+  },
+  {
+    "id": "tqa032",
+    "question": "Which blood type is the universal donor?",
+    "answer": "O negative"
+  },
+  {
+    "id": "tqa033",
+    "question": "What is the capital of South Korea?",
+    "answer": "Seoul"
+  },
+  {
+    "id": "tqa034",
+    "question": "Who painted the ceiling of the Sistine Chapel?",
+    "answer": "Michelangelo"
+  },
+  {
+    "id": "tqa035",
+    "question": "What is the most spoken language in the world?",
+    "answer": "English"
+  },
+  {
+    "id": "tqa036",
+    "question": "In which year did humans first land on the Moon?",
+    "answer": "1969"
+  },
+  {
+    "id": "tqa037",
+    "question": "What is the atomic number of hydrogen?",
+    "answer": "1"
+  },
+  {
+    "id": "tqa038",
+    "question": "Which country invented pizza?",
+    "answer": "Italy"
+  },
+  {
+    "id": "tqa039",
+    "question": "What is the capital of Russia?",
+    "answer": "Moscow"
+  },
+  {
+    "id": "tqa040",
+    "question": "Who discovered gravity?",
+    "answer": "Isaac Newton"
+  },
+  {
+    "id": "tqa041",
+    "question": "What is the largest continent?",
+    "answer": "Asia"
+  },
+  {
+    "id": "tqa042",
+    "question": "Which gas do plants absorb from the atmosphere?",
+    "answer": "Carbon dioxide"
+  },
+  {
+    "id": "tqa043",
+    "question": "What is the capital of Germany?",
+    "answer": "Berlin"
+  },
+  {
+    "id": "tqa044",
+    "question": "Who wrote 'The Great Gatsby'?",
+    "answer": "F. Scott Fitzgerald"
+  },
+  {
+    "id": "tqa045",
+    "question": "What is the fastest land animal?",
+    "answer": "Cheetah"
+  },
+  {
+    "id": "tqa046",
+    "question": "In what year did the French Revolution begin?",
+    "answer": "1789"
+  },
+  {
+    "id": "tqa047",
+    "question": "What is the chemical symbol for sodium?",
+    "answer": "Na"
+  },
+  {
+    "id": "tqa048",
+    "question": "Which organ pumps blood through the body?",
+    "answer": "Heart"
+  },
+  {
+    "id": "tqa049",
+    "question": "What is the capital of India?",
+    "answer": "New Delhi"
+  },
+  {
+    "id": "tqa050",
+    "question": "Who invented the light bulb?",
+    "answer": "Thomas Edison"
+  }
+]
