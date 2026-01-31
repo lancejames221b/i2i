@@ -140,12 +140,19 @@ class AICP:
         statistical_mode: Optional[bool] = None,
         n_runs: Optional[int] = None,
         temperature: Optional[float] = None,
+        task_aware: bool = True,
+        force_consensus: Optional[bool] = None,
     ) -> ConsensusResult:
         """
         Query multiple models and analyze their consensus.
 
         This is the primary method for getting reliable answers by
         cross-referencing multiple AI architectures.
+
+        IMPORTANT: Based on evaluation (400 questions, 4 models), consensus
+        helps factual/verification tasks but DEGRADES math/reasoning by 35%.
+        Set task_aware=True (default) to get warnings in metadata when
+        consensus may be inappropriate.
 
         Args:
             query: The question/prompt
@@ -154,10 +161,21 @@ class AICP:
             statistical_mode: Enable n-run statistical analysis (default from config)
             n_runs: Number of runs per model for statistical mode
             temperature: Temperature for statistical mode queries
+            task_aware: Check task type and add recommendations (default True)
+            force_consensus: Override task-aware check (None=auto, True=force, False=skip)
 
         Returns:
             ConsensusResult (or StatisticalConsensusResult if statistical_mode=True)
+            Result includes task_recommendation in metadata if task_aware=True
         """
+        from .task_classifier import recommend_consensus, ConsensusRecommendation
+        
+        task_recommendation: Optional[ConsensusRecommendation] = None
+        
+        # Task-aware consensus checking
+        if task_aware and force_consensus is None:
+            task_recommendation = recommend_consensus(query)
+            
         if models is None:
             # Default to a diverse set of models
             models = self._get_default_models()
@@ -166,7 +184,7 @@ class AICP:
         use_statistical = statistical_mode if statistical_mode is not None else is_statistical_mode_enabled()
 
         if use_statistical:
-            return await self.consensus_engine.query_for_consensus_statistical(
+            result = await self.consensus_engine.query_for_consensus_statistical(
                 query=query,
                 models=models,
                 n_runs=n_runs,
@@ -174,11 +192,27 @@ class AICP:
                 context=context,
             )
         else:
-            return await self.consensus_engine.query_for_consensus(
+            result = await self.consensus_engine.query_for_consensus(
                 query=query,
                 models=models,
                 context=context,
             )
+        
+        # Add task-aware metadata
+        if task_recommendation is not None:
+            if not hasattr(result, 'metadata') or result.metadata is None:
+                result.metadata = {}
+            result.metadata['task_recommendation'] = {
+                'should_use_consensus': task_recommendation.should_use_consensus,
+                'task_category': task_recommendation.task_category.value,
+                'reason': task_recommendation.reason,
+                'suggested_approach': task_recommendation.suggested_approach,
+                'classification_confidence': task_recommendation.confidence,
+            }
+            if not task_recommendation.should_use_consensus:
+                result.metadata['consensus_warning'] = task_recommendation.reason
+        
+        return result
 
     async def consensus_query_statistical(
         self,

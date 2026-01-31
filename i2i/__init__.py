@@ -69,8 +69,18 @@ from .search import (
     SerpAPIBackend,
     TavilySearchBackend,
 )
+from .task_classifier import (
+    ConsensusTaskCategory,
+    ConsensusRecommendation,
+    recommend_consensus,
+    is_consensus_appropriate,
+    get_task_category,
+    should_warn_about_consensus,
+    get_confidence_calibration,
+    router_task_to_consensus_category,
+)
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"  # Bump for task-aware consensus
 __all__ = [
     # Core protocol
     "AICP",
@@ -134,4 +144,13 @@ __all__ = [
     "BraveSearchBackend",
     "SerpAPIBackend",
     "TavilySearchBackend",
+    # Task-aware consensus
+    "ConsensusTaskCategory",
+    "ConsensusRecommendation",
+    "recommend_consensus",
+    "is_consensus_appropriate",
+    "get_task_category",
+    "should_warn_about_consensus",
+    "get_confidence_calibration",
+    "router_task_to_consensus_category",
 ]

@@ -510,12 +510,62 @@ python demo.py models
 | **Divergence detection** | See exactly where models disagree |
 | **Structured debates** | Explore topics from multiple AI perspectives |
 
+### When Consensus Works (and When It Doesn't)
+
+Based on our evaluation of 400 questions across 5 benchmarks with 4 models (GPT-5.2, Claude Sonnet 4.5, Gemini 3 Flash, Grok-3):
+
+| Task Type | Single Model | Consensus | Change | HIGH Acc |
+|-----------|--------------|-----------|--------|----------|
+| **Factual QA** (TriviaQA) | 93.3% | 94.0% | +0.7% | **97.8%** |
+| **Hallucination Detection** | 38% | 44% | **+6%** | **100%** |
+| **Commonsense** (StrategyQA) | 80% | 80% | 0% | **94.7%** |
+| **TruthfulQA** | 78% | 78% | 0% | **100%** |
+| **Math Reasoning** (GSM8K) | 95% | 60% | **-35%** ⚠️ | 69.9% |
+
+**Key findings:**
+
+✅ **Use consensus for:**
+- Factual questions (HIGH consensus = 97-100% accuracy)
+- Hallucination/claim verification (+6% improvement)
+- Commonsense reasoning (HIGH consensus is highly reliable)
+
+❌ **Don't use consensus for:**
+- Mathematical/logical reasoning (different chains shouldn't be averaged)
+- Creative writing (consensus flattens diversity)
+- Code generation (specific correct answers)
+
+**The insight:** i2i doesn't universally improve accuracy — it provides **calibrated confidence**. When models agree (HIGH consensus), you can trust the answer. When they disagree, you know to be skeptical.
+
+### Task-Aware Consensus (v0.2.0+)
+
+i2i now automatically detects task type and warns when consensus may be inappropriate:
+
+```python
+from i2i import AICP, recommend_consensus
+
+# Check before running consensus
+rec = recommend_consensus("Calculate 5 * 3 + 2")
+print(rec.should_use_consensus)  # False
+print(rec.reason)  # "WARNING: Consensus DEGRADES math/reasoning..."
+
+# The consensus_query method now includes task recommendations
+result = await protocol.consensus_query("What is the capital of France?")
+print(result.metadata['task_recommendation'])
+# {'should_use_consensus': True, 'task_category': 'factual', ...}
+
+# For math, it will warn you:
+result = await protocol.consensus_query("Solve x^2 - 4 = 0")
+print(result.metadata.get('consensus_warning'))
+# "WARNING: Consensus DEGRADES math/reasoning by 35%..."
+```
+
 ### When NOT to Use i2i
 
 - Simple, low-stakes queries (just use one model)
 - Real-time applications where latency matters
 - Cost-sensitive scenarios (multiple API calls = multiple costs)
-- When you need creative/subjective outputs (consensus may flatten creativity)
+- Mathematical/logical reasoning (use single model with chain-of-thought)
+- Creative outputs (consensus flattens diversity)
 
 ---
 
