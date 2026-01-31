@@ -3,6 +3,9 @@ Provider adapters for different AI APIs.
 
 This module provides a unified interface for querying different AI models,
 abstracting away the differences in their APIs.
+
+Supports multimodal (vision) content when the multimodal feature flag is
+enabled and the model supports it.
 """
 
 import os
@@ -12,9 +15,37 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 
-from .schema import Message, Response, ConfidenceLevel
+from .schema import Message, Response, ConfidenceLevel, ContentType, Attachment
+from .config import feature_enabled
 
 load_dotenv()
+
+
+# Models that support vision/image input
+VISION_CAPABLE_MODELS = {
+    # OpenAI
+    "gpt-5.2", "gpt-5.2-chat-latest", "gpt-5", "gpt-5-mini", "gpt-5-pro",
+    "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
+    "gpt-4o", "gpt-4o-mini",
+    "o3", "o3-pro", "o4-mini",
+    # Anthropic
+    "claude-opus-4-5-20251101", "claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001",
+    "claude-opus-4-20250514", "claude-sonnet-4-20250514",
+    "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022",
+    "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307",
+    # Google
+    "gemini-3-pro-preview", "gemini-3-flash-preview", "gemini-3-deep-think-preview",
+    "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash-exp",
+    # Groq (Llama vision models)
+    "llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview",
+}
+
+
+def model_supports_vision(model: str) -> bool:
+    """Check if a model supports vision/image input."""
+    # Strip provider prefix if present
+    model_name = model.split("/")[-1] if "/" in model else model
+    return model_name in VISION_CAPABLE_MODELS
 
 
 class ProviderAdapter(ABC):
@@ -96,7 +127,10 @@ class OpenAIAdapter(ProviderAdapter):
             for ctx_msg in message.context:
                 role = "assistant" if ctx_msg.sender else "user"
                 messages.append({"role": role, "content": ctx_msg.content})
-        messages.append({"role": "user", "content": message.content})
+
+        # Build user message content (may be multimodal)
+        user_content = self._build_message_content(message, model)
+        messages.append({"role": "user", "content": user_content})
 
         # Add system prompt for protocol awareness
         system_prompt = """You are participating in an AI-to-AI communication protocol.
@@ -123,6 +157,40 @@ When responding:
             output_tokens=response.usage.completion_tokens if response.usage else None,
             latency_ms=latency,
         )
+
+    def _build_message_content(self, message: Message, model: str) -> Any:
+        """Build message content, handling multimodal if supported."""
+        # Check if multimodal is enabled and model supports it
+        use_multimodal = (
+            feature_enabled("multimodal")
+            and message.has_attachments()
+            and model_supports_vision(model)
+        )
+
+        if not use_multimodal:
+            # Fallback: include attachment descriptions in text
+            return message.get_text_with_descriptions()
+
+        # Build multimodal content array
+        content = [{"type": "text", "text": message.content}]
+
+        for attachment in message.get_image_attachments():
+            image_data = attachment.get_base64_data()
+            if image_data:
+                mime_type = attachment.infer_mime_type() or "image/png"
+                content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{mime_type};base64,{image_data}"
+                    }
+                })
+            elif attachment.url:
+                content.append({
+                    "type": "image_url",
+                    "image_url": {"url": attachment.url}
+                })
+
+        return content
 
     def _extract_confidence(self, content: str) -> ConfidenceLevel:
         """Heuristically extract confidence from response content."""
@@ -180,7 +248,10 @@ class AnthropicAdapter(ProviderAdapter):
             for ctx_msg in message.context:
                 role = "assistant" if ctx_msg.sender else "user"
                 messages.append({"role": role, "content": ctx_msg.content})
-        messages.append({"role": "user", "content": message.content})
+
+        # Build user message content (may be multimodal)
+        user_content = self._build_message_content(message, model)
+        messages.append({"role": "user", "content": user_content})
 
         system_prompt = """You are participating in an AI-to-AI communication protocol.
 When responding:
@@ -209,6 +280,41 @@ When responding:
             output_tokens=response.usage.output_tokens if response.usage else None,
             latency_ms=latency,
         )
+
+    def _build_message_content(self, message: Message, model: str) -> Any:
+        """Build message content, handling multimodal if supported."""
+        use_multimodal = (
+            feature_enabled("multimodal")
+            and message.has_attachments()
+            and model_supports_vision(model)
+        )
+
+        if not use_multimodal:
+            return message.get_text_with_descriptions()
+
+        # Anthropic format: list of content blocks
+        content = [{"type": "text", "text": message.content}]
+
+        for attachment in message.get_image_attachments():
+            image_data = attachment.get_base64_data()
+            if image_data:
+                mime_type = attachment.infer_mime_type() or "image/png"
+                content.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": mime_type,
+                        "data": image_data,
+                    }
+                })
+            elif attachment.url and not attachment.url.startswith("data:"):
+                # Anthropic doesn't support URL references directly,
+                # would need to fetch and convert to base64
+                # For now, add as text description
+                desc = attachment.description or f"[Image: {attachment.url}]"
+                content.append({"type": "text", "text": desc})
+
+        return content
 
     def _extract_confidence(self, content: str) -> ConfidenceLevel:
         """Heuristically extract confidence from response content."""
@@ -256,15 +362,20 @@ class GoogleAdapter(ProviderAdapter):
         genai.configure(api_key=self.api_key)
         gen_model = genai.GenerativeModel(model)
 
-        # Build conversation
-        prompt = message.content
+        # Build conversation content (may be multimodal)
+        prompt_parts = self._build_prompt_parts(message, model)
+
         if message.context:
             context_str = "\n".join([f"Previous: {m.content}" for m in message.context])
-            prompt = f"{context_str}\n\nCurrent query: {message.content}"
+            # Prepend context to the first text part
+            if isinstance(prompt_parts, list) and prompt_parts:
+                prompt_parts = [f"{context_str}\n\nCurrent query: {prompt_parts[0]}"] + prompt_parts[1:]
+            else:
+                prompt_parts = f"{context_str}\n\nCurrent query: {prompt_parts}"
 
         response = await asyncio.to_thread(
             gen_model.generate_content,
-            prompt
+            prompt_parts
         )
 
         latency = (time.time() - start_time) * 1000
@@ -278,6 +389,37 @@ class GoogleAdapter(ProviderAdapter):
             confidence=ConfidenceLevel.MEDIUM,
             latency_ms=latency,
         )
+
+    def _build_prompt_parts(self, message: Message, model: str) -> Any:
+        """Build prompt parts, handling multimodal if supported."""
+        import google.generativeai as genai
+        import base64
+
+        use_multimodal = (
+            feature_enabled("multimodal")
+            and message.has_attachments()
+            and model_supports_vision(model)
+        )
+
+        if not use_multimodal:
+            return message.get_text_with_descriptions()
+
+        # Gemini format: list of parts (text and inline images)
+        parts = [message.content]
+
+        for attachment in message.get_image_attachments():
+            image_data = attachment.get_base64_data()
+            if image_data:
+                mime_type = attachment.infer_mime_type() or "image/png"
+                # Gemini uses PIL Image or inline_data
+                parts.append({
+                    "inline_data": {
+                        "mime_type": mime_type,
+                        "data": image_data,
+                    }
+                })
+
+        return parts
 
 
 class MistralAdapter(ProviderAdapter):

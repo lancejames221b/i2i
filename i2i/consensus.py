@@ -3,10 +3,15 @@ Consensus and divergence detection for multi-model queries.
 
 This module analyzes responses from multiple AI models to determine
 levels of agreement, identify divergences, and synthesize consensus answers.
+
+Supports homogeneous consortium detection and optimization when models
+are from the same family (e.g., all Claude, all GPT).
 """
 
 import asyncio
-from typing import List, Dict, Optional, Tuple
+import logging
+from enum import Enum
+from typing import List, Dict, Optional, Tuple, Set
 from collections import defaultdict
 
 from .schema import (
@@ -18,16 +23,123 @@ from .schema import (
     ConfidenceLevel,
 )
 from .providers import ProviderRegistry
-from .config import get_synthesis_models
+from .config import get_synthesis_models, feature_enabled
+
+logger = logging.getLogger(__name__)
+
+
+class ConsortiumType(str, Enum):
+    """Classification of model consortium diversity."""
+    HETEROGENEOUS = "heterogeneous"  # Different model families (ideal for diversity)
+    HOMOGENEOUS = "homogeneous"      # Same family (all Claude, all GPT, etc.)
+    MIXED = "mixed"                  # Mostly same with some different
+
+
+class ModelFamily(str, Enum):
+    """Known model families/providers."""
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
+    MISTRAL = "mistral"
+    META = "meta"          # Llama models
+    COHERE = "cohere"
+    UNKNOWN = "unknown"
+
+
+def detect_model_family(model: str) -> ModelFamily:
+    """
+    Detect the model family from a model identifier.
+
+    Args:
+        model: Model identifier (e.g., "claude-3-sonnet", "gpt-4o", "gemini-1.5-pro")
+
+    Returns:
+        The detected ModelFamily.
+    """
+    model_lower = model.lower()
+
+    # Strip provider prefix if present
+    if "/" in model_lower:
+        model_lower = model_lower.split("/")[-1]
+
+    # Anthropic (Claude)
+    if any(x in model_lower for x in ["claude", "anthropic"]):
+        return ModelFamily.ANTHROPIC
+
+    # OpenAI (GPT, O-series)
+    if any(x in model_lower for x in ["gpt", "o3", "o4", "openai", "codex"]):
+        return ModelFamily.OPENAI
+
+    # Google (Gemini)
+    if any(x in model_lower for x in ["gemini", "google", "palm"]):
+        return ModelFamily.GOOGLE
+
+    # Mistral
+    if any(x in model_lower for x in ["mistral", "mixtral", "codestral", "devstral", "ministral"]):
+        return ModelFamily.MISTRAL
+
+    # Meta (Llama)
+    if any(x in model_lower for x in ["llama", "meta"]):
+        return ModelFamily.META
+
+    # Cohere
+    if any(x in model_lower for x in ["command", "cohere"]):
+        return ModelFamily.COHERE
+
+    return ModelFamily.UNKNOWN
+
+
+def detect_consortium_type(models: List[str]) -> Tuple[ConsortiumType, Dict[ModelFamily, List[str]]]:
+    """
+    Analyze a list of models to determine consortium type.
+
+    Args:
+        models: List of model identifiers.
+
+    Returns:
+        Tuple of (ConsortiumType, family_mapping) where family_mapping
+        maps each family to its models.
+    """
+    family_mapping: Dict[ModelFamily, List[str]] = defaultdict(list)
+
+    for model in models:
+        family = detect_model_family(model)
+        family_mapping[family].append(model)
+
+    # Count unique families (excluding UNKNOWN)
+    known_families = {f for f in family_mapping.keys() if f != ModelFamily.UNKNOWN}
+    num_families = len(known_families)
+
+    if num_families == 0:
+        # All unknown - treat as heterogeneous (we don't know)
+        return ConsortiumType.HETEROGENEOUS, dict(family_mapping)
+    elif num_families == 1:
+        return ConsortiumType.HOMOGENEOUS, dict(family_mapping)
+    elif num_families >= len(models) * 0.8:
+        # 80%+ different families = heterogeneous
+        return ConsortiumType.HETEROGENEOUS, dict(family_mapping)
+    else:
+        return ConsortiumType.MIXED, dict(family_mapping)
 
 
 class ConsensusEngine:
     """
     Engine for detecting consensus and divergence across AI models.
+
+    Supports homogeneous consortium optimization when all models are
+    from the same family and the feature flag is enabled.
     """
 
     def __init__(self, registry: ProviderRegistry):
         self.registry = registry
+
+    def analyze_consortium(self, models: List[str]) -> Tuple[ConsortiumType, Dict[ModelFamily, List[str]]]:
+        """
+        Analyze the consortium of models for diversity.
+
+        Returns consortium type and family breakdown.
+        """
+        return detect_consortium_type(models)
 
     async def query_for_consensus(
         self,
@@ -46,6 +158,23 @@ class ConsensusEngine:
         Returns:
             ConsensusResult with analysis of agreement/disagreement
         """
+        # Analyze consortium type
+        consortium_type, family_mapping = self.analyze_consortium(models)
+
+        # Log consortium info and apply optimizations if enabled
+        if feature_enabled("homogeneous_optimization"):
+            if consortium_type == ConsortiumType.HOMOGENEOUS:
+                family = list(family_mapping.keys())[0]
+                logger.info(
+                    f"Homogeneous consortium detected: all models from {family.value} family. "
+                    "Diversity metrics may be less meaningful (correlated errors possible)."
+                )
+            elif consortium_type == ConsortiumType.MIXED:
+                logger.info(
+                    f"Mixed consortium: {dict(family_mapping)}. "
+                    "Consider using fully heterogeneous models for better diversity."
+                )
+
         # Create the message
         message = Message(
             type=MessageType.QUERY,
@@ -63,7 +192,7 @@ class ConsensusEngine:
                 valid_responses.append(resp)
             else:
                 # Log error but continue
-                print(f"Error from {models[i]}: {resp}")
+                logger.warning(f"Error from {models[i]}: {resp}")
 
         if not valid_responses:
             raise ValueError("All model queries failed")
@@ -82,6 +211,19 @@ class ConsensusEngine:
         if consensus_level in [ConsensusLevel.HIGH, ConsensusLevel.MEDIUM]:
             consensus_answer = await self._synthesize_consensus(query, valid_responses)
 
+        # Build metadata with consortium info
+        metadata = {
+            "consortium_type": consortium_type.value,
+            "family_breakdown": {k.value: v for k, v in family_mapping.items()},
+        }
+
+        # Add warning if homogeneous
+        if consortium_type == ConsortiumType.HOMOGENEOUS:
+            metadata["warning"] = (
+                "Homogeneous consortium: all models from same family. "
+                "High agreement may reflect shared training biases rather than true consensus."
+            )
+
         return ConsensusResult(
             query=query,
             models_queried=[r.model for r in valid_responses],
@@ -91,6 +233,7 @@ class ConsensusEngine:
             divergences=divergences,
             agreement_matrix=agreement_matrix,
             clusters=clusters,
+            metadata=metadata,
         )
 
     async def _analyze_consensus(

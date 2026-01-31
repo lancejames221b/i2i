@@ -66,6 +66,24 @@ DEFAULTS = {
         "groq": {"enabled": True, "timeout_ms": 30000},
         "cohere": {"enabled": True, "timeout_ms": 30000},
     },
+    # Feature flags for experimental/optional capabilities
+    # Reference: Wang et al. 2022 (self-consistency), Du et al. 2023 (debate), Zou et al. 2025 (latent)
+    "features": {
+        "multimodal": False,                   # Enable image/non-text content handling
+        "homogeneous_optimization": False,     # Optimize for same-family model consortiums
+        "self_consistency_sampling": False,    # Wang et al. 2022 - sample multiple from same model
+        "multi_round_debate": True,            # Du et al. 2023 - already partially implemented
+        "latent_collaboration": False,         # Zou et al. 2025 - token reduction via latent space
+    },
+}
+
+# Feature flag environment variable mappings
+FEATURE_ENV_MAPPINGS = {
+    "I2I_FEATURE_MULTIMODAL": "features.multimodal",
+    "I2I_FEATURE_HOMOGENEOUS_OPTIMIZATION": "features.homogeneous_optimization",
+    "I2I_FEATURE_SELF_CONSISTENCY": "features.self_consistency_sampling",
+    "I2I_FEATURE_MULTI_ROUND_DEBATE": "features.multi_round_debate",
+    "I2I_FEATURE_LATENT_COLLABORATION": "features.latent_collaboration",
 }
 
 
@@ -155,6 +173,18 @@ def apply_env_overrides(config: Dict[str, Any]) -> Dict[str, Any]:
         config["routing"]["default_strategy"] = os.getenv("I2I_ROUTING_STRATEGY")
     if os.getenv("I2I_USE_AI_CLASSIFIER"):
         config["routing"]["use_ai_classifier"] = os.getenv("I2I_USE_AI_CLASSIFIER").lower() == "true"
+
+    # Feature flag overrides (I2I_FEATURE_* env vars)
+    for env_var, config_path in FEATURE_ENV_MAPPINGS.items():
+        value = os.getenv(env_var)
+        if value is not None:
+            # Parse boolean from string
+            bool_value = value.lower() in ("true", "1", "yes", "on")
+            parts = config_path.split(".")
+            target = config
+            for part in parts[:-1]:
+                target = target.setdefault(part, {})
+            target[parts[-1]] = bool_value
 
     return config
 
@@ -300,6 +330,36 @@ class Config:
         """Return configuration as a dictionary."""
         return deepcopy(self._data)
 
+    # ==================== Feature Flags ====================
+
+    def feature_enabled(self, feature: str) -> bool:
+        """
+        Check if a feature flag is enabled.
+
+        Args:
+            feature: Feature name (e.g., "multimodal", "homogeneous_optimization")
+
+        Returns:
+            True if the feature is enabled, False otherwise.
+
+        Examples:
+            config.feature_enabled("multimodal")
+            config.feature_enabled("self_consistency_sampling")
+        """
+        return self.get(f"features.{feature}", False)
+
+    def enable_feature(self, feature: str) -> None:
+        """Enable a feature flag."""
+        self.set(f"features.{feature}", True)
+
+    def disable_feature(self, feature: str) -> None:
+        """Disable a feature flag."""
+        self.set(f"features.{feature}", False)
+
+    def list_features(self) -> Dict[str, bool]:
+        """List all feature flags and their current state."""
+        return self.get("features", {})
+
     @property
     def source_path(self) -> Optional[Path]:
         """Path of the loaded config file, if any."""
@@ -375,3 +435,8 @@ def get_verification_models() -> List[str]:
 def get_epistemic_models() -> List[str]:
     """Get default models for epistemic classification."""
     return get_config().epistemic_models
+
+
+def feature_enabled(feature: str) -> bool:
+    """Check if a feature flag is enabled (convenience function)."""
+    return get_config().feature_enabled(feature)

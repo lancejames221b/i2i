@@ -14,8 +14,11 @@ from .schema import (
     EpistemicClassification,
     EpistemicType,
     ConsensusLevel,
+    # Multimodal support
+    ContentType,
+    Attachment,
 )
-from .providers import ProviderRegistry
+from .providers import ProviderRegistry, model_supports_vision, VISION_CAPABLE_MODELS
 from .router import (
     ModelRouter,
     TaskClassifier,
@@ -35,7 +38,15 @@ from .config import (
     get_synthesis_models,
     get_verification_models,
     get_epistemic_models,
+    feature_enabled,
     DEFAULTS,
+)
+from .consensus import (
+    ConsensusEngine,
+    ConsortiumType,
+    ModelFamily,
+    detect_model_family,
+    detect_consortium_type,
 )
 from .search import (
     SearchBackend,
@@ -58,8 +69,19 @@ __all__ = [
     "EpistemicClassification",
     "EpistemicType",
     "ConsensusLevel",
+    # Multimodal support
+    "ContentType",
+    "Attachment",
     # Provider management
     "ProviderRegistry",
+    "model_supports_vision",
+    "VISION_CAPABLE_MODELS",
+    # Consensus & Consortium
+    "ConsensusEngine",
+    "ConsortiumType",
+    "ModelFamily",
+    "detect_model_family",
+    "detect_consortium_type",
     # Routing
     "ModelRouter",
     "TaskClassifier",
@@ -79,6 +101,7 @@ __all__ = [
     "get_synthesis_models",
     "get_verification_models",
     "get_epistemic_models",
+    "feature_enabled",
     # Search/RAG
     "SearchBackend",
     "SearchResult",

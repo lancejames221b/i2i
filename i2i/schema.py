@@ -3,13 +3,17 @@ Core message schema and types for the AI-to-AI Communication Protocol.
 
 This defines the standardized format for inter-AI communication,
 including message types, response structures, and classification enums.
+
+Supports multimodal content (images, audio, video) when the multimodal
+feature flag is enabled.
 """
 
 from enum import Enum
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any, Union
+from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 import uuid
+import base64
 
 
 class MessageType(str, Enum):
@@ -49,12 +53,134 @@ class ConfidenceLevel(str, Enum):
     VERY_LOW = "very_low"
 
 
+# ==================== Multimodal Support ====================
+
+
+class ContentType(str, Enum):
+    """Types of content that can be attached to messages."""
+    TEXT = "text"
+    IMAGE = "image"
+    AUDIO = "audio"
+    VIDEO = "video"
+    DOCUMENT = "document"
+
+
+class Attachment(BaseModel):
+    """
+    Multimodal attachment for messages.
+
+    Supports inline base64 data or URL references. When a model doesn't
+    support the content type, falls back to the description field.
+    """
+    content_type: ContentType
+    data: Optional[str] = None          # base64-encoded content for inline
+    url: Optional[str] = None           # URL reference (https://, data:, etc.)
+    mime_type: Optional[str] = None     # e.g., "image/png", "audio/mp3"
+    description: Optional[str] = None   # Alt text / fallback for non-supporting models
+    filename: Optional[str] = None      # Original filename if applicable
+
+    @model_validator(mode='after')
+    def validate_data_or_url(self) -> 'Attachment':
+        """Ensure either data or url is provided."""
+        if self.data is None and self.url is None:
+            raise ValueError("Either 'data' (base64) or 'url' must be provided")
+        return self
+
+    def get_base64_data(self) -> Optional[str]:
+        """Get base64 data, extracting from data URI if necessary."""
+        if self.data:
+            return self.data
+        if self.url and self.url.startswith("data:"):
+            # Extract base64 from data URI: data:mime;base64,<data>
+            try:
+                _, encoded = self.url.split(",", 1)
+                return encoded
+            except ValueError:
+                return None
+        return None
+
+    def infer_mime_type(self) -> Optional[str]:
+        """Infer MIME type from data URI or filename."""
+        if self.mime_type:
+            return self.mime_type
+        if self.url and self.url.startswith("data:"):
+            try:
+                meta = self.url.split(",")[0]  # data:image/png;base64
+                return meta.split(":")[1].split(";")[0]
+            except (IndexError, ValueError):
+                pass
+        if self.filename:
+            ext = self.filename.lower().split(".")[-1]
+            mime_map = {
+                "png": "image/png",
+                "jpg": "image/jpeg",
+                "jpeg": "image/jpeg",
+                "gif": "image/gif",
+                "webp": "image/webp",
+                "mp3": "audio/mp3",
+                "wav": "audio/wav",
+                "mp4": "video/mp4",
+                "pdf": "application/pdf",
+            }
+            return mime_map.get(ext)
+        return None
+
+    @classmethod
+    def from_file(cls, path: str, description: Optional[str] = None) -> "Attachment":
+        """Create an attachment from a local file path."""
+        import mimetypes
+        from pathlib import Path
+
+        file_path = Path(path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {path}")
+
+        mime_type, _ = mimetypes.guess_type(str(file_path))
+        with open(file_path, "rb") as f:
+            data = base64.b64encode(f.read()).decode("utf-8")
+
+        # Determine content type from MIME
+        content_type = ContentType.DOCUMENT
+        if mime_type:
+            if mime_type.startswith("image/"):
+                content_type = ContentType.IMAGE
+            elif mime_type.startswith("audio/"):
+                content_type = ContentType.AUDIO
+            elif mime_type.startswith("video/"):
+                content_type = ContentType.VIDEO
+
+        return cls(
+            content_type=content_type,
+            data=data,
+            mime_type=mime_type,
+            filename=file_path.name,
+            description=description,
+        )
+
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        content_type: ContentType = ContentType.IMAGE,
+        description: Optional[str] = None,
+    ) -> "Attachment":
+        """Create an attachment from a URL reference."""
+        return cls(
+            content_type=content_type,
+            url=url,
+            description=description,
+        )
+
+
 class Message(BaseModel):
     """
     Standardized message format for AI-to-AI communication.
 
     This is the fundamental unit of the protocol - all AI interactions
     are encoded as Messages.
+
+    Supports multimodal content via the attachments field when the
+    multimodal feature flag is enabled.
     """
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: MessageType
@@ -68,10 +194,47 @@ class Message(BaseModel):
     # For challenge/verify messages
     target_message_id: Optional[str] = None  # Message being challenged/verified
 
+    # Multimodal attachments (images, audio, video, documents)
+    attachments: List[Attachment] = Field(default_factory=list)
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
+
+    def has_attachments(self) -> bool:
+        """Check if this message has any attachments."""
+        return len(self.attachments) > 0
+
+    def get_attachments_by_type(self, content_type: ContentType) -> List[Attachment]:
+        """Get all attachments of a specific type."""
+        return [a for a in self.attachments if a.content_type == content_type]
+
+    def get_image_attachments(self) -> List[Attachment]:
+        """Get all image attachments."""
+        return self.get_attachments_by_type(ContentType.IMAGE)
+
+    def add_attachment(self, attachment: Attachment) -> None:
+        """Add an attachment to this message."""
+        self.attachments.append(attachment)
+
+    def get_text_with_descriptions(self) -> str:
+        """
+        Get content with attachment descriptions appended.
+
+        Useful for fallback when a model doesn't support multimodal.
+        """
+        if not self.attachments:
+            return self.content
+
+        descriptions = []
+        for i, att in enumerate(self.attachments):
+            if att.description:
+                descriptions.append(f"[Attachment {i+1}: {att.description}]")
+            else:
+                descriptions.append(f"[Attachment {i+1}: {att.content_type.value}]")
+
+        return f"{self.content}\n\n" + "\n".join(descriptions)
 
 
 class Response(BaseModel):
