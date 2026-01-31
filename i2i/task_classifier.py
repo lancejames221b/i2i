@@ -109,11 +109,12 @@ MATH_PATTERNS = [
 FACTUAL_PATTERNS = [
     r'\bwhat\s+is\s+(the|a)\b', r'\bwho\s+(is|was|are|were)\b',
     r'\bwhen\s+(did|was|were|is)\b', r'\bwhere\s+(is|was|are|were)\b',
+    r'\bwhat\s+year\b', r'\bwhat\s+date\b', r'\bwhat\s+day\b',
     r'\bcapital\s+of\b', r'\bpopulation\s+of\b',
-    r'\bfounded\b', r'\binvented\b', r'\bdiscovered\b',
+    r'\bfounded\b', r'\binvented\b', r'\bdiscovered\b', r'\bpublish\b',
     r'\bborn\b', r'\bdied\b', r'\belected\b',
     r'\bname\s+(the|a)\b', r'\blist\s+(the|all)\b',
-    r'\btrivia\b', r'\bfact\b',
+    r'\btrivia\b', r'\bfact\b', r'\bhistory\b',
 ]
 
 VERIFICATION_PATTERNS = [

@@ -383,7 +383,96 @@ def models_compare(
 @app.command("version")
 def version():
     """Show i2i version."""
-    console.print("i2i v0.1.0")
+    console.print("i2i v0.2.0")
+
+
+# ============ Benchmark Commands ============
+
+benchmark_app = typer.Typer(help="Run evaluation benchmarks")
+app.add_typer(benchmark_app, name="benchmark")
+
+
+@benchmark_app.command("check")
+def benchmark_check(
+    question: str = typer.Argument(..., help="Question to classify"),
+):
+    """Check if consensus is appropriate for a question."""
+    from .task_classifier import recommend_consensus
+    
+    rec = recommend_consensus(question)
+    
+    status = "[green]✓ USE CONSENSUS[/green]" if rec.should_use_consensus else "[red]✗ SKIP CONSENSUS[/red]"
+    console.print(f"\n{status}\n")
+    console.print(f"[bold]Question:[/bold] {question}")
+    console.print(f"[bold]Task Category:[/bold] {rec.task_category.value}")
+    console.print(f"[bold]Classification Confidence:[/bold] {rec.confidence:.0%}")
+    console.print(f"\n[bold]Reason:[/bold] {rec.reason}")
+    console.print(f"\n[bold]Suggested Approach:[/bold] {rec.suggested_approach}")
+
+
+@benchmark_app.command("calibration")
+def benchmark_calibration():
+    """Show confidence calibration table."""
+    from .task_classifier import get_confidence_calibration
+    
+    console.print("\n[bold]Confidence Calibration (based on 400-question evaluation)[/bold]\n")
+    
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Consensus Level")
+    table.add_column("Confidence")
+    table.add_column("Interpretation")
+    
+    levels = [
+        ("HIGH (≥85% agreement)", "high", "Trust the answer"),
+        ("MEDIUM (60-84%)", "medium", "Probably correct"),
+        ("LOW (30-59%)", "low", "Use with caution"),
+        ("NONE (<30%)", "none", "Likely hallucination"),
+    ]
+    
+    for name, level, interp in levels:
+        conf = get_confidence_calibration(level)
+        table.add_row(name, f"{conf:.2f}", interp)
+    
+    console.print(table)
+    
+    console.print("\n[dim]Based on evaluation: HIGH consensus = 95-100% accuracy on factual tasks[/dim]")
+
+
+@benchmark_app.command("summary")
+def benchmark_summary():
+    """Show summary of evaluation findings."""
+    console.print("\n[bold]i2i Evaluation Summary[/bold]")
+    console.print("[dim]400 questions, 5 benchmarks, 4 models (GPT-5.2, Claude, Gemini, Grok)[/dim]\n")
+    
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Benchmark")
+    table.add_column("Single Model")
+    table.add_column("Consensus")
+    table.add_column("Change")
+    table.add_column("HIGH Acc")
+    
+    results = [
+        ("TriviaQA (Factual)", "93.3%", "94.0%", "[green]+0.7%[/green]", "97.8%"),
+        ("TruthfulQA", "78%", "78%", "0%", "100%"),
+        ("StrategyQA", "80%", "80%", "0%", "94.7%"),
+        ("Hallucination", "38%", "44%", "[green]+6%[/green]", "100%"),
+        ("GSM8K (Math)", "95%", "60%", "[red]-35%[/red]", "69.9%"),
+    ]
+    
+    for row in results:
+        table.add_row(*row)
+    
+    console.print(table)
+    
+    console.print("\n[bold green]✓ Use consensus for:[/bold green]")
+    console.print("  • Factual questions (HIGH consensus = 97-100% accuracy)")
+    console.print("  • Hallucination detection (+6% improvement)")
+    console.print("  • Commonsense reasoning (HIGH consensus = 95% accuracy)")
+    
+    console.print("\n[bold red]✗ Don't use consensus for:[/bold red]")
+    console.print("  • Math/reasoning (consensus DEGRADES by 35%)")
+    console.print("  • Creative writing (flattens diversity)")
+    console.print("  • Code generation (specific correct answers)")
 
 
 @app.command("status")
