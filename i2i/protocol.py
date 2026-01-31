@@ -141,6 +141,7 @@ class AICP:
         n_runs: Optional[int] = None,
         temperature: Optional[float] = None,
         task_aware: bool = True,
+        task_category: Optional[str] = None,
         force_consensus: Optional[bool] = None,
     ) -> ConsensusResult:
         """
@@ -162,19 +163,37 @@ class AICP:
             n_runs: Number of runs per model for statistical mode
             temperature: Temperature for statistical mode queries
             task_aware: Check task type and add recommendations (default True)
+            task_category: Explicit task category override ('factual', 'reasoning', 
+                          'verification', 'creative', 'commonsense'). Skips auto-detection.
             force_consensus: Override task-aware check (None=auto, True=force, False=skip)
 
         Returns:
-            ConsensusResult (or StatisticalConsensusResult if statistical_mode=True)
-            Result includes task_recommendation in metadata if task_aware=True
+            ConsensusResult with task-aware fields:
+            - consensus_appropriate: Whether consensus was appropriate for this task
+            - confidence_calibration: Calibrated confidence (HIGH=0.95, MED=0.75, etc.)
+            - task_category: Detected or specified task category
         """
-        from .task_classifier import recommend_consensus, ConsensusRecommendation
+        from .task_classifier import (
+            recommend_consensus, 
+            ConsensusRecommendation,
+            ConsensusTaskCategory,
+            get_confidence_calibration,
+        )
         
         task_recommendation: Optional[ConsensusRecommendation] = None
         
         # Task-aware consensus checking
         if task_aware and force_consensus is None:
-            task_recommendation = recommend_consensus(query)
+            # Use explicit task_category if provided, otherwise auto-detect
+            if task_category:
+                try:
+                    cat = ConsensusTaskCategory(task_category.lower())
+                    task_recommendation = recommend_consensus(query, task_category=cat)
+                except ValueError:
+                    # Invalid category, fall back to auto-detect
+                    task_recommendation = recommend_consensus(query)
+            else:
+                task_recommendation = recommend_consensus(query)
             
         if models is None:
             # Default to a diverse set of models
@@ -198,8 +217,19 @@ class AICP:
                 context=context,
             )
         
-        # Add task-aware metadata
+        # Add task-aware fields to result (v0.2.0+)
         if task_recommendation is not None:
+            # Set top-level fields
+            result.consensus_appropriate = task_recommendation.should_use_consensus
+            result.task_category = task_recommendation.task_category.value
+            
+            # Calculate calibrated confidence based on consensus level
+            if result.consensus_level:
+                result.confidence_calibration = get_confidence_calibration(
+                    result.consensus_level.value
+                )
+            
+            # Also add detailed recommendation to metadata
             if not hasattr(result, 'metadata') or result.metadata is None:
                 result.metadata = {}
             result.metadata['task_recommendation'] = {

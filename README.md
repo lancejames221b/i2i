@@ -538,26 +538,44 @@ Based on our evaluation of 400 questions across 5 benchmarks with 4 models (GPT-
 
 ### Task-Aware Consensus (v0.2.0+)
 
-i2i now automatically detects task type and warns when consensus may be inappropriate:
+i2i automatically detects task type and provides calibrated confidence:
 
 ```python
 from i2i import AICP, recommend_consensus
+
+protocol = AICP()
 
 # Check before running consensus
 rec = recommend_consensus("Calculate 5 * 3 + 2")
 print(rec.should_use_consensus)  # False
 print(rec.reason)  # "WARNING: Consensus DEGRADES math/reasoning..."
 
-# The consensus_query method now includes task recommendations
+# Consensus results now include task-aware fields
 result = await protocol.consensus_query("What is the capital of France?")
-print(result.metadata['task_recommendation'])
-# {'should_use_consensus': True, 'task_category': 'factual', ...}
+print(result.consensus_appropriate)   # True (factual question)
+print(result.task_category)           # "factual"
+print(result.confidence_calibration)  # 0.95 (for HIGH consensus)
 
-# For math, it will warn you:
+# Explicit task category override
+result = await protocol.consensus_query(
+    "Is this claim true?",
+    task_category="verification"  # Skip auto-detection
+)
+
+# For math questions, you'll get a warning
 result = await protocol.consensus_query("Solve x^2 - 4 = 0")
+print(result.consensus_appropriate)   # False
 print(result.metadata.get('consensus_warning'))
 # "WARNING: Consensus DEGRADES math/reasoning by 35%..."
 ```
+
+**Calibrated confidence scores** (based on evaluation data):
+| Consensus Level | Confidence Score | Meaning |
+|-----------------|------------------|---------|
+| HIGH (≥85%) | 0.95 | Trust the answer |
+| MEDIUM (60-84%) | 0.75 | Probably correct |
+| LOW (30-59%) | 0.60 | Use with caution |
+| NONE (<30%) | 0.50 | Likely hallucination |
 
 ### When NOT to Use i2i
 

@@ -263,6 +263,11 @@ class Response(BaseModel):
 class ConsensusResult(BaseModel):
     """
     Result of a consensus query across multiple models.
+    
+    Includes task-aware fields (v0.2.0+) for calibrated confidence:
+    - consensus_appropriate: Whether consensus was appropriate for this task type
+    - confidence_calibration: Calibrated confidence score based on consensus level
+    - task_category: Detected or specified task category
     """
     query: str
     models_queried: List[str]
@@ -278,6 +283,12 @@ class ConsensusResult(BaseModel):
 
     # Clustering (for when there are multiple "camps")
     clusters: Optional[List[List[str]]] = None  # Groups of agreeing models
+
+    # Task-aware consensus (v0.2.0+)
+    # Based on evaluation: consensus helps factual tasks, hurts math/reasoning
+    consensus_appropriate: Optional[bool] = None  # Was consensus appropriate for this task?
+    confidence_calibration: Optional[float] = None  # Calibrated confidence (HIGH=0.95, MED=0.75, etc.)
+    task_category: Optional[str] = None  # Detected task category (factual, reasoning, creative, etc.)
 
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
