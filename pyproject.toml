@@ -50,6 +50,10 @@ dev = [
     "black>=24.0.0",
     "ruff>=0.1.0",
 ]
+langchain = [
+    "langchain-core>=0.2.0",
+    "langchain-openai>=0.1.0",
+]
 
 [project.scripts]
 i2i = "i2i.cli:main"
@@ -74,6 +78,10 @@ include = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-v"
+markers = [
+    "e2e: marks tests as end-to-end (requires API keys)",
+    "slow: marks tests as slow (may take >10 seconds)",
+]
 
 [tool.coverage.run]
 source = ["i2i"]
