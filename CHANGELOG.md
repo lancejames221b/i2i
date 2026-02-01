@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **LangChain Integration** (2026-02-01): Complete overhaul - all 48 tests pass
+  - Added `config` property to `I2IVerifier` for accessing `VerificationConfig`
+  - Added parameter aliases: `confidence_threshold`, `min_consensus_level`, `protocol`, `statistical_mode`
+  - Added consensus level threshold enforcement (HIGH > MEDIUM > LOW > NONE > CONTRADICTORY)
+  - Use `confidence_calibration` from consensus result when available
+  - Added `include_verification_metadata` support (returns `None` when disabled)
+  - Added `protocol` parameter to `I2IVerificationCallback`
+  - Added `confidence` and `original_content` fields to `I2IVerifiedOutput`
+  - Added `min_consensus_level` passthrough to `I2IVerifiedChain`
+
 ### Added
 
 - **LangChain Integration**: Full integration with LangChain LCEL pipelines

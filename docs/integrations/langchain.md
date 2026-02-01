@@ -43,22 +43,43 @@ print(result.content)            # "Paris is the capital of France..."
 The main Runnable component for adding verification to LCEL chains.
 
 ```python
+from i2i.schema import ConsensusLevel
+
 I2IVerifier(
-    models: Optional[List[str]] = None,       # Models for consensus
-    min_confidence: float = 0.6,              # Confidence threshold (0-1)
-    task_category: Optional[str] = None,      # Override task detection
-    task_aware: bool = True,                  # Enable task-aware routing
-    aicp: Optional[AICP] = None,              # Pre-configured AICP instance
+    models: Optional[List[str]] = None,              # Models for consensus
+    min_confidence: float = 0.7,                     # Confidence threshold (0-1)
+    confidence_threshold: Optional[float] = None,   # Alias for min_confidence
+    min_consensus_level: ConsensusLevel = MEDIUM,   # Minimum consensus level required
+    task_category: Optional[str] = None,            # Override task detection
+    task_aware: bool = True,                        # Enable task-aware routing
+    protocol: Optional[AICP] = None,                # Pre-configured AICP instance
+    raise_on_failure: bool = False,                 # Raise exception on verification failure
+    include_verification_metadata: bool = True,     # Include detailed metadata in output
+    statistical_mode: bool = False,                 # Use statistical consensus
+    n_runs: int = 3,                                # Runs per model in statistical mode
+    temperature: float = 0.7,                       # Temperature for statistical queries
 )
 ```
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `models` | `List[str]` | `None` | Models for consensus queries. Auto-selects if `None`. |
-| `min_confidence` | `float` | `0.6` | Minimum calibrated confidence to pass verification. |
+| `min_confidence` | `float` | `0.7` | Minimum calibrated confidence to pass verification. |
+| `confidence_threshold` | `float` | `None` | Alias for `min_confidence`. |
+| `min_consensus_level` | `ConsensusLevel` | `MEDIUM` | Minimum consensus level (HIGH > MEDIUM > LOW > NONE). |
 | `task_category` | `str` | `None` | Override automatic task detection (`"factual"`, `"reasoning"`, `"creative"`). |
 | `task_aware` | `bool` | `True` | Use task-aware routing (skips consensus for math/reasoning). |
-| `aicp` | `AICP` | `None` | Pre-configured i2i protocol instance. |
+| `protocol` | `AICP` | `None` | Pre-configured i2i protocol instance. |
+| `raise_on_failure` | `bool` | `False` | Raise `VerificationError` when verification fails. |
+| `include_verification_metadata` | `bool` | `True` | Include detailed verification metadata in output. |
+
+Access configuration via the `config` property:
+
+```python
+verifier = I2IVerifier(confidence_threshold=0.9, min_consensus_level=ConsensusLevel.HIGH)
+print(verifier.config.confidence_threshold)  # 0.9
+print(verifier.config.min_consensus_level)   # ConsensusLevel.HIGH
+```
 
 ### VerificationConfig
 
