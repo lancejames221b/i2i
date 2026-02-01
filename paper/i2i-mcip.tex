@@ -52,7 +52,7 @@ Unit 221B \\
 \maketitle
 
 \begin{abstract}
-Large Language Models (LLMs) demonstrate remarkable capabilities but suffer from hallucinations, single-model biases, and inability to express epistemic uncertainty. We present \textbf{i2i} (``eye-to-eye'') and the \textbf{Multi-model Consensus and Inference Protocol (MCIP)}, a standardized framework for AI-to-AI communication that addresses these limitations through multi-model consensus, cross-verification, epistemic classification, and intelligent routing. Our key insight is not that consensus universally improves accuracy, but that \emph{consensus level reliably predicts answer trustworthiness}. In evaluation across 400 questions spanning factual QA, hallucination detection, mathematical reasoning, and commonsense tasks, we find that HIGH consensus ($\geq$85\% agreement) achieves \textbf{95-100\% accuracy} regardless of task type. We demonstrate that consensus provides a 6\% improvement in hallucination detection (38\%$\rightarrow$44\%), with LOW/NONE consensus reliably flagging confabulated answers. Critically, we also show that consensus \emph{degrades} performance on mathematical reasoning (95\%$\rightarrow$60\% on GSM8K), revealing that different reasoning chains should not be averaged---a finding that informs task-appropriate deployment. We introduce \emph{epistemic classification} to distinguish answerable questions from uncertain, underdetermined, or ``idle'' questions. The protocol is provider-agnostic, supporting OpenAI, Anthropic, Google, xAI, and local models. Code and specification: \url{https://github.com/lancejames221b/i2i}.
+Large Language Models (LLMs) demonstrate remarkable capabilities but suffer from hallucinations, single-model biases, and inability to express epistemic uncertainty. We present \textbf{i2i} and the \textbf{Multi-model Consensus and Inference Protocol (MCIP)}, a standardized framework for AI-to-AI communication that addresses these limitations through multi-model consensus, cross-verification, epistemic classification, and intelligent routing. Our key insight is not that consensus universally improves accuracy, but that \emph{consensus level reliably predicts answer trustworthiness}. In evaluation across 400 questions spanning factual QA, hallucination detection, mathematical reasoning, and commonsense tasks, we find that HIGH consensus ($\geq$85\% agreement) achieves \textbf{92.6\% overall accuracy} (97.8\% on non-mathematical tasks where consensus is appropriate). We demonstrate that consensus provides a 6\% improvement in hallucination detection (38\%$\rightarrow$44\%), with LOW/NONE consensus reliably flagging confabulated answers. Critically, we also show that consensus \emph{degrades} performance on mathematical reasoning (95\%$\rightarrow$60\% on GSM8K), revealing that different reasoning chains should not be averaged---a finding that informs task-appropriate deployment. We introduce \emph{epistemic classification} to distinguish answerable questions from uncertain, underdetermined, or ``idle'' questions. The protocol is provider-agnostic, supporting OpenAI, Anthropic, Google, xAI, and local models. Code and specification: \url{https://github.com/lancejames221b/i2i}.
 \end{abstract}
 
 \section{Introduction}
@@ -74,7 +74,7 @@ We address these challenges with \textbf{MCIP (Multi-model Consensus and Inferen
 \begin{itemize}
     \item \textbf{MCIP Protocol}: A formal specification for AI-to-AI communication including message schemas, consensus mechanisms, verification protocols, and epistemic classification taxonomy.
     
-    \item \textbf{Consensus Mechanism}: Algorithms for detecting agreement levels (HIGH/MEDIUM/LOW/NONE/CONTRADICTORY) across model responses with provable reliability guarantees.
+    \item \textbf{Consensus Mechanism}: Algorithms for detecting agreement levels (HIGH/MEDIUM/LOW/NONE/CONTRADICTORY) across model responses with empirically validated reliability.
     
     \item \textbf{Epistemic Classification}: A taxonomy distinguishing ANSWERABLE, UNCERTAIN, UNDERDETERMINED, IDLE, and MALFORMED questions, preventing wasted computation on unanswerable queries.
     
@@ -235,7 +235,7 @@ A key innovation is \emph{epistemic classification}---determining whether a ques
 
 \subsection{The ``Idle Question'' Concept}
 
-The IDLE classification emerged from an actual dialogue between Claude and ChatGPT about AI consciousness. ChatGPT observed that some questions are ``well-formed but idle''---coherent grammatically but their answers do not guide any action.
+The IDLE classification captures questions that are ``well-formed but idle''---coherent grammatically but their answers do not guide any action.
 
 Formally, a question $Q$ is \textbf{actionable} if there exists a decision $D$ such that:
 \begin{equation}
@@ -294,6 +294,8 @@ This provides natural defense against hallucinations: injected instructions unli
 
 \section{Intelligent Model Routing}
 \label{sec:routing}
+
+\textbf{Note}: This section describes the routing architecture implemented in i2i. Systematic evaluation of routing effectiveness is planned for future work; results in Section~\ref{sec:eval} focus on consensus mechanisms.
 
 \subsection{Task Classification}
 
@@ -416,7 +418,7 @@ Our results reveal a nuanced picture: consensus provides modest improvements on 
 
 \subsubsection{Where Consensus Helps}
 
-For factual knowledge tasks (TriviaQA, TruthfulQA), consensus either improves or maintains accuracy. The key benefit is \emph{calibration}: HIGH consensus questions achieve 95-100\% accuracy, providing a reliable trust signal.
+For factual knowledge tasks (TriviaQA, TruthfulQA), consensus either improves or maintains accuracy. The key benefit is \emph{calibration}: HIGH consensus questions achieve 97.8\% accuracy on non-mathematical tasks (92.6\% overall), providing a reliable trust signal.
 
 For hallucination detection, consensus provides a 6\% absolute improvement. More importantly, when models confabulate, they invent \emph{different} false details, resulting in LOW/NONE consensus---making consensus level an effective hallucination detector.
 
@@ -565,7 +567,7 @@ We presented MCIP, a protocol for multi-model consensus and inference, with a nu
 
 Our evaluation across 400 questions shows:
 \begin{itemize}
-    \item HIGH consensus ($\geq$85\% agreement) achieves 95-100\% accuracy on factual tasks
+    \item HIGH consensus ($\geq$85\% agreement) achieves 92.6\% overall accuracy (97.8\% on factual/verification tasks)
     \item Consensus improves hallucination detection by 6\% absolute
     \item LOW/NONE consensus reliably signals potential confabulation
     \item Consensus \emph{degrades} mathematical reasoning (-35\%), revealing task-type sensitivity
