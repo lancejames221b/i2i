@@ -443,14 +443,14 @@ def benchmark_summary():
     """Show summary of evaluation findings."""
     console.print("\n[bold]i2i Evaluation Summary[/bold]")
     console.print("[dim]400 questions, 5 benchmarks, 4 models (GPT-5.2, Claude, Gemini, Grok)[/dim]\n")
-    
+
     table = Table(show_header=True, header_style="bold")
     table.add_column("Benchmark")
     table.add_column("Single Model")
     table.add_column("Consensus")
     table.add_column("Change")
     table.add_column("HIGH Acc")
-    
+
     results = [
         ("TriviaQA (Factual)", "93.3%", "94.0%", "[green]+0.7%[/green]", "97.8%"),
         ("TruthfulQA", "78%", "78%", "0%", "100%"),
@@ -458,21 +458,157 @@ def benchmark_summary():
         ("Hallucination", "38%", "44%", "[green]+6%[/green]", "100%"),
         ("GSM8K (Math)", "95%", "60%", "[red]-35%[/red]", "69.9%"),
     ]
-    
+
     for row in results:
         table.add_row(*row)
-    
+
     console.print(table)
-    
+
     console.print("\n[bold green]✓ Use consensus for:[/bold green]")
     console.print("  • Factual questions (HIGH consensus = 97-100% accuracy)")
     console.print("  • Hallucination detection (+6% improvement)")
     console.print("  • Commonsense reasoning (HIGH consensus = 95% accuracy)")
-    
+
     console.print("\n[bold red]✗ Don't use consensus for:[/bold red]")
     console.print("  • Math/reasoning (consensus DEGRADES by 35%)")
     console.print("  • Creative writing (flattens diversity)")
     console.print("  • Code generation (specific correct answers)")
+
+
+@benchmark_app.command("stats")
+def benchmark_stats(
+    results_dir: Path = typer.Option(
+        Path("benchmarks/results"),
+        "--dir", "-d",
+        help="Directory containing benchmark results"
+    ),
+    n_bootstrap: int = typer.Option(10000, "--bootstrap", "-b", help="Number of bootstrap samples"),
+    latex: bool = typer.Option(False, "--latex", "-l", help="Output as LaTeX table"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+):
+    """Run statistical significance tests on benchmark results."""
+    from .statistics import load_and_analyze, format_statistics_table, format_latex_table
+    from dataclasses import asdict
+
+    # Find latest result files for each benchmark
+    benchmarks = ["TruthfulQA", "ControlledHallucination", "GSM8K", "StrategyQA", "TriviaQA"]
+    stats_list = []
+
+    console.print("\n[bold]Statistical Analysis of Benchmark Results[/bold]")
+    console.print(f"[dim]Bootstrap samples: {n_bootstrap:,}[/dim]\n")
+
+    for benchmark in benchmarks:
+        # Find the latest file for this benchmark
+        pattern = f"{benchmark}_v2_*.json"
+        files = sorted(results_dir.glob(pattern), reverse=True)
+
+        if not files:
+            console.print(f"[yellow]No results found for {benchmark}[/yellow]")
+            continue
+
+        latest_file = files[0]
+        console.print(f"[dim]Loading {latest_file.name}...[/dim]")
+
+        try:
+            stats = load_and_analyze(latest_file, n_bootstrap=n_bootstrap)
+            stats_list.append(stats)
+        except Exception as e:
+            console.print(f"[red]Error loading {benchmark}: {e}[/red]")
+
+    if not stats_list:
+        console.print("[red]No benchmark results found[/red]")
+        raise typer.Exit(1)
+
+    console.print()
+
+    if json_output:
+        # Output as JSON
+        output = []
+        for stats in stats_list:
+            output.append({
+                "benchmark": stats.benchmark_name,
+                "n_samples": stats.n_samples,
+                "single_model_accuracy": {
+                    "point_estimate": stats.single_model_accuracy.point_estimate,
+                    "ci_lower": stats.single_model_accuracy.ci_lower,
+                    "ci_upper": stats.single_model_accuracy.ci_upper,
+                },
+                "consensus_accuracy": {
+                    "point_estimate": stats.consensus_accuracy.point_estimate,
+                    "ci_lower": stats.consensus_accuracy.ci_lower,
+                    "ci_upper": stats.consensus_accuracy.ci_upper,
+                },
+                "improvement": {
+                    "point_estimate": stats.improvement.point_estimate,
+                    "ci_lower": stats.improvement.ci_lower,
+                    "ci_upper": stats.improvement.ci_upper,
+                },
+                "mcnemar": {
+                    "chi_square": stats.mcnemar.chi_square_corrected,
+                    "p_value": stats.mcnemar.p_value,
+                    "significant_05": stats.mcnemar.significant_at_05,
+                    "significant_01": stats.mcnemar.significant_at_01,
+                    "cohens_g": stats.mcnemar.cohens_g,
+                    "direction": stats.mcnemar.direction,
+                } if stats.mcnemar else None,
+            })
+        console.print(Syntax(json.dumps(output, indent=2), "json"))
+    elif latex:
+        # Output as LaTeX
+        console.print(format_latex_table(stats_list))
+    else:
+        # Pretty table output
+        console.print(format_statistics_table(stats_list))
+
+        # Additional details
+        console.print("\n[bold]McNemar's Test Details[/bold]\n")
+        for stats in stats_list:
+            if stats.mcnemar:
+                mcn = stats.mcnemar
+                console.print(f"[cyan]{stats.benchmark_name}[/cyan]")
+                console.print(f"  Contingency: both_correct={mcn.n_both_correct}, single_only={mcn.n_single_only}, consensus_only={mcn.n_consensus_only}, both_wrong={mcn.n_both_wrong}")
+                console.print(f"  Chi-square (corrected): {mcn.chi_square_corrected:.3f}")
+                console.print(f"  Effect size (Cohen's g): {mcn.cohens_g:.3f}")
+                if mcn.p_value_exact is not None:
+                    console.print(f"  p-value (exact binomial): {mcn.p_value_exact:.4f}")
+                else:
+                    console.print(f"  p-value: {mcn.p_value:.4f}")
+                console.print()
+
+
+@benchmark_app.command("mcnemar")
+def benchmark_mcnemar(
+    results_file: Path = typer.Argument(..., help="Path to benchmark results JSON"),
+):
+    """Run McNemar's test on a single benchmark file."""
+    from .statistics import load_and_analyze
+
+    if not results_file.exists():
+        console.print(f"[red]File not found: {results_file}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"\n[bold]McNemar's Test Analysis[/bold]")
+    console.print(f"[dim]File: {results_file}[/dim]\n")
+
+    stats = load_and_analyze(results_file)
+
+    if stats.mcnemar:
+        console.print(str(stats.mcnemar))
+
+        console.print(f"\n[bold]Accuracy with 95% Bootstrap CIs[/bold]")
+        console.print(f"  Single Model: {stats.single_model_accuracy}")
+        console.print(f"  Consensus:    {stats.consensus_accuracy}")
+        console.print(f"  Improvement:  {stats.improvement}")
+
+        if stats.high_consensus_accuracy:
+            console.print(f"\n[bold]By Consensus Level[/bold]")
+            console.print(f"  HIGH:   {stats.high_consensus_accuracy}")
+        if stats.medium_consensus_accuracy:
+            console.print(f"  MEDIUM: {stats.medium_consensus_accuracy}")
+        if stats.low_consensus_accuracy:
+            console.print(f"  LOW:    {stats.low_consensus_accuracy}")
+    else:
+        console.print("[yellow]Could not compute McNemar's test[/yellow]")
 
 
 @app.command("status")

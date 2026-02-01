@@ -79,8 +79,20 @@ from .task_classifier import (
     get_confidence_calibration,
     router_task_to_consensus_category,
 )
+from .statistics import (
+    McNemarResult,
+    BootstrapCI,
+    BenchmarkStatistics,
+    mcnemar_test,
+    bootstrap_accuracy_ci,
+    bootstrap_improvement_ci,
+    analyze_benchmark_results,
+    load_and_analyze,
+    format_statistics_table,
+    format_latex_table,
+)
 
-__version__ = "0.2.0"  # Bump for task-aware consensus
+__version__ = "0.2.1"  # Add statistical significance tests
 __all__ = [
     # Core protocol
     "AICP",
@@ -153,4 +165,15 @@ __all__ = [
     "should_warn_about_consensus",
     "get_confidence_calibration",
     "router_task_to_consensus_category",
+    # Statistical significance
+    "McNemarResult",
+    "BootstrapCI",
+    "BenchmarkStatistics",
+    "mcnemar_test",
+    "bootstrap_accuracy_ci",
+    "bootstrap_improvement_ci",
+    "analyze_benchmark_results",
+    "load_and_analyze",
+    "format_statistics_table",
+    "format_latex_table",
 ]
