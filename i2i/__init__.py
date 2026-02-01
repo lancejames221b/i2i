@@ -80,7 +80,21 @@ from .task_classifier import (
     router_task_to_consensus_category,
 )
 
-__version__ = "0.2.0"  # Bump for task-aware consensus
+# LangChain integration (optional - only available if langchain-core installed)
+try:
+    from .integrations.langchain import (
+        I2IConsensusLLM,
+        LowConfidenceError,
+        ConsensusMode,
+    )
+    _LANGCHAIN_AVAILABLE = True
+except ImportError:
+    _LANGCHAIN_AVAILABLE = False
+    I2IConsensusLLM = None
+    LowConfidenceError = None
+    ConsensusMode = None
+
+__version__ = "0.2.1"  # Bump for LangChain integration
 __all__ = [
     # Core protocol
     "AICP",
@@ -153,4 +167,8 @@ __all__ = [
     "should_warn_about_consensus",
     "get_confidence_calibration",
     "router_task_to_consensus_category",
+    # LangChain integration (optional)
+    "I2IConsensusLLM",
+    "LowConfidenceError",
+    "ConsensusMode",
 ]
