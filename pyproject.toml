@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "i2i-mcip"
-version = "0.1.0"
+version = "0.2.1"
 description = "AI-to-AI Communication Protocol - Multi-model consensus, verification, and intelligent routing"
 readme = "README.md"
 license = {text = "MIT"}
@@ -49,6 +49,9 @@ dev = [
     "respx>=0.21.0",
     "black>=24.0.0",
     "ruff>=0.1.0",
+]
+langchain = [
+    "langchain-core>=0.1.0",
 ]
 
 [project.scripts]
