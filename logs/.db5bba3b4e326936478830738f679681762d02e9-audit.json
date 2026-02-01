@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/lj/dev/.vibe-kanban-data/worktrees/47c0-paper-add-ablati/i2i/logs/.db5bba3b4e326936478830738f679681762d02e9-audit.json",
+    "files": [
+        {
+            "date": 1769922207639,
+            "name": "/home/lj/dev/.vibe-kanban-data/worktrees/47c0-paper-add-ablati/i2i/logs/mcp-puppeteer-2026-02-01.log",
+            "hash": "8bb56fba4d724e2f0f7aa856d668f3cdfddb2421a7d5c160ff01795afa013717"
+        }
+    ],
+    "hashType": "sha256"
+}

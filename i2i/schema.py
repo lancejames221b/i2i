@@ -36,11 +36,23 @@ class EpistemicType(str, Enum):
 
 
 class ConsensusLevel(str, Enum):
-    """Level of agreement between AI models."""
-    HIGH = "high"           # Strong agreement (>90% semantic similarity)
-    MEDIUM = "medium"       # Moderate agreement (60-90%)
-    LOW = "low"             # Weak agreement (30-60%)
-    NONE = "none"           # No meaningful agreement (<30%)
+    """
+    Level of agreement between AI models.
+
+    Default thresholds (configurable via config.json or environment):
+    - HIGH: >= 85% average pairwise similarity
+    - MEDIUM: >= 60% average pairwise similarity
+    - LOW: >= 30% average pairwise similarity
+    - NONE: < 30% average pairwise similarity
+    - CONTRADICTORY: < 30% with explicit contradiction markers
+
+    See benchmarks/threshold_ablation.py for sensitivity analysis
+    justifying these threshold choices.
+    """
+    HIGH = "high"           # Strong agreement (>= 85% similarity, configurable)
+    MEDIUM = "medium"       # Moderate agreement (>= 60% similarity, configurable)
+    LOW = "low"             # Weak agreement (>= 30% similarity, configurable)
+    NONE = "none"           # No meaningful agreement (< 30% similarity)
     CONTRADICTORY = "contradictory"  # Active disagreement/contradiction
 
 

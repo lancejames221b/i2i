@@ -57,6 +57,18 @@ DEFAULTS = {
         "min_agreement_threshold": 0.7,
         "max_rounds": 3,
         "require_unanimous": False,
+        # Consensus level thresholds (similarity score boundaries)
+        # These determine how average pairwise similarity maps to consensus levels
+        "thresholds": {
+            "high": 0.85,      # >= 0.85 = HIGH consensus
+            "medium": 0.60,    # >= 0.60 = MEDIUM consensus
+            "low": 0.30,       # >= 0.30 = LOW consensus
+            # Below 0.30 = NONE or CONTRADICTORY
+        },
+        # Clustering threshold for grouping agreeing models
+        "clustering_threshold": 0.70,
+        # Divergence threshold for identifying significant disagreement
+        "divergence_threshold": 0.50,
     },
     "statistical_mode": {
         "enabled": False,  # Feature flag - set True to enable by default
@@ -493,3 +505,41 @@ def get_embedding_model() -> str:
 def feature_enabled(feature: str) -> bool:
     """Check if a feature flag is enabled (convenience function)."""
     return get_config().feature_enabled(feature)
+
+
+# ==================== Consensus Threshold Accessors ====================
+
+def get_consensus_thresholds() -> Dict[str, float]:
+    """
+    Get the consensus level thresholds.
+
+    Returns:
+        Dict with 'high', 'medium', 'low' threshold values.
+    """
+    defaults = {"high": 0.85, "medium": 0.60, "low": 0.30}
+    return get_config().get("consensus.thresholds", defaults)
+
+
+def get_high_threshold() -> float:
+    """Get the HIGH consensus threshold (default: 0.85)."""
+    return get_consensus_thresholds().get("high", 0.85)
+
+
+def get_medium_threshold() -> float:
+    """Get the MEDIUM consensus threshold (default: 0.60)."""
+    return get_consensus_thresholds().get("medium", 0.60)
+
+
+def get_low_threshold() -> float:
+    """Get the LOW consensus threshold (default: 0.30)."""
+    return get_consensus_thresholds().get("low", 0.30)
+
+
+def get_clustering_threshold() -> float:
+    """Get the clustering threshold for grouping models (default: 0.70)."""
+    return get_config().get("consensus.clustering_threshold", 0.70)
+
+
+def get_divergence_threshold() -> float:
+    """Get the divergence threshold for identifying disagreement (default: 0.50)."""
+    return get_config().get("consensus.divergence_threshold", 0.50)

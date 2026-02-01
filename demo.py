@@ -581,6 +581,176 @@ def models():
             ))
 
 
+# ==================== Ablation Commands ====================
+
+@app.command()
+def ablation(
+    mode: str = typer.Option("quick", "--mode", "-m",
+                              help="Mode: quick (5 tasks), standard (15 tasks), full (18 tasks)"),
+    output: str = typer.Option("benchmarks/results/ablation", "--output", "-o",
+                                help="Output directory for results"),
+):
+    """Run threshold ablation study to analyze consensus threshold sensitivity."""
+    print_header()
+    console.print("\n[bold]Threshold Ablation Study[/bold]\n")
+    console.print(f"Mode: {mode}")
+    console.print(f"Output: {output}\n")
+
+    asyncio.run(_ablation_async(mode, output))
+
+
+async def _ablation_async(mode: str, output: str):
+    """Async implementation of ablation command."""
+    from benchmarks.threshold_ablation import (
+        ThresholdAblationEngine,
+        FACTUAL_DATASET,
+        REASONING_DATASET,
+        AMBIGUOUS_DATASET,
+    )
+
+    engine = ThresholdAblationEngine(results_dir=output)
+
+    # Select tasks based on mode
+    if mode == "quick":
+        tasks = FACTUAL_DATASET[:5]
+        name = "quick_ablation"
+    elif mode == "standard":
+        tasks = FACTUAL_DATASET + REASONING_DATASET
+        name = "standard_ablation"
+    else:
+        tasks = FACTUAL_DATASET + REASONING_DATASET + AMBIGUOUS_DATASET
+        name = "full_ablation"
+
+    console.print(f"[dim]Running {len(tasks)} tasks...[/dim]\n")
+
+    try:
+        study = await engine.run_full_ablation(tasks, name=name)
+
+        # Display summary
+        console.print("\n[bold green]Ablation Study Complete[/bold green]\n")
+
+        table = Table(title="Threshold Configuration Results")
+        table.add_column("Config", style="cyan")
+        table.add_column("Overall Acc", style="green")
+        table.add_column("HIGH Acc", style="yellow")
+        table.add_column("Calibration", style="magenta")
+        table.add_column("Reliability", style="blue")
+
+        for m in study.config_metrics:
+            thresh = m["thresholds"]
+            config_str = f"H:{thresh['high']:.2f}/M:{thresh['medium']:.2f}/L:{thresh['low']:.2f}"
+            table.add_row(
+                config_str,
+                f"{m['overall_accuracy']:.1f}%",
+                f"{m['high']['accuracy']:.1f}%",
+                f"{m['calibration_error']:.3f}",
+                f"{m['reliability_score']:.3f}",
+            )
+
+        console.print(table)
+
+        if study.optimal_config:
+            console.print(f"\n[bold]Optimal Configuration:[/bold]")
+            console.print(f"  HIGH:   {study.optimal_config['high']:.2f}")
+            console.print(f"  MEDIUM: {study.optimal_config['medium']:.2f}")
+            console.print(f"  LOW:    {study.optimal_config['low']:.2f}")
+            console.print(f"  Score:  {study.optimal_score:.4f}")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+
+
+@app.command()
+def thresholds():
+    """Show current consensus threshold configuration."""
+    print_header()
+
+    from i2i.config import (
+        get_consensus_thresholds,
+        get_clustering_threshold,
+        get_divergence_threshold,
+    )
+
+    console.print("\n[bold]Consensus Thresholds[/bold]\n")
+
+    thresholds = get_consensus_thresholds()
+
+    table = Table(title="Current Configuration")
+    table.add_column("Level", style="cyan")
+    table.add_column("Threshold", style="green")
+    table.add_column("Description", style="dim")
+
+    table.add_row("HIGH", f">= {thresholds['high']:.0%}", "Strong agreement between models")
+    table.add_row("MEDIUM", f">= {thresholds['medium']:.0%}", "Moderate agreement")
+    table.add_row("LOW", f">= {thresholds['low']:.0%}", "Weak agreement")
+    table.add_row("NONE", f"< {thresholds['low']:.0%}", "No meaningful agreement")
+
+    console.print(table)
+
+    console.print(f"\n[dim]Clustering threshold: {get_clustering_threshold():.2f}[/dim]")
+    console.print(f"[dim]Divergence threshold: {get_divergence_threshold():.2f}[/dim]")
+
+    console.print("\n[bold]Configure via:[/bold]")
+    console.print("  Environment: I2I_CONSENSUS_HIGH_THRESHOLD, etc.")
+    console.print("  Config file: ~/.i2i/config.json")
+
+
+@app.command()
+def sensitivity(
+    parameter: str = typer.Argument(..., help="Parameter to analyze: high, medium, or low"),
+):
+    """Show sensitivity curve for a specific threshold parameter."""
+    print_header()
+
+    if parameter not in ["high", "medium", "low"]:
+        console.print(f"[red]Invalid parameter: {parameter}[/red]")
+        console.print("Valid parameters: high, medium, low")
+        return
+
+    # Load recent ablation results if available
+    from pathlib import Path
+    import json
+
+    results_dir = Path("benchmarks/results/ablation")
+    if not results_dir.exists():
+        console.print("[yellow]No ablation results found. Run 'demo.py ablation' first.[/yellow]")
+        return
+
+    # Find most recent results
+    results_files = sorted(results_dir.glob("*.json"), reverse=True)
+    if not results_files:
+        console.print("[yellow]No ablation results found. Run 'demo.py ablation' first.[/yellow]")
+        return
+
+    with open(results_files[0]) as f:
+        study = json.load(f)
+
+    sensitivity_key = f"sensitivity_{parameter}"
+    if sensitivity_key not in study or not study[sensitivity_key]:
+        console.print(f"[yellow]No sensitivity data for {parameter} in results.[/yellow]")
+        return
+
+    console.print(f"\n[bold]Sensitivity Analysis: {parameter.upper()} Threshold[/bold]\n")
+
+    table = Table(title=f"{parameter.upper()} Threshold Sensitivity")
+    table.add_column("Threshold", style="cyan")
+    table.add_column("Overall Acc", style="green")
+    table.add_column(f"{parameter.upper()} Acc", style="yellow")
+    table.add_column("Calibration", style="magenta")
+
+    for entry in study[sensitivity_key]:
+        acc_key = f"{parameter}_accuracy" if parameter != "high" else "high_accuracy"
+        acc_value = entry.get(acc_key, entry.get("accuracy", 0))
+        table.add_row(
+            f"{entry['value']:.2f}",
+            f"{entry['accuracy']:.1f}%",
+            f"{acc_value:.1f}%",
+            f"{entry['calibration']:.3f}",
+        )
+
+    console.print(table)
+
+
 # ==================== Helper Functions ====================
 
 def _format_task_type(task_type: TaskType) -> str:

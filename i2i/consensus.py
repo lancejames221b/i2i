@@ -37,6 +37,11 @@ from .config import (
     get_statistical_temperature,
     get_statistical_outlier_threshold,
     feature_enabled,
+    get_high_threshold,
+    get_medium_threshold,
+    get_low_threshold,
+    get_clustering_threshold,
+    get_divergence_threshold,
 )
 from .embeddings import (
     EmbeddingProvider,
@@ -293,12 +298,17 @@ class ConsensusEngine:
 
         avg_similarity = sum(similarities) / len(similarities) if similarities else 1.0
 
-        # Determine consensus level
-        if avg_similarity >= 0.85:
+        # Get configurable thresholds
+        high_thresh = get_high_threshold()
+        medium_thresh = get_medium_threshold()
+        low_thresh = get_low_threshold()
+
+        # Determine consensus level using configurable thresholds
+        if avg_similarity >= high_thresh:
             level = ConsensusLevel.HIGH
-        elif avg_similarity >= 0.6:
+        elif avg_similarity >= medium_thresh:
             level = ConsensusLevel.MEDIUM
-        elif avg_similarity >= 0.3:
+        elif avg_similarity >= low_thresh:
             level = ConsensusLevel.LOW
         else:
             # Check for active contradiction
@@ -384,12 +394,13 @@ class ConsensusEngine:
         Identify specific points of divergence between responses.
         """
         divergences = []
+        divergence_thresh = get_divergence_threshold()
 
         for i, r1 in enumerate(responses):
             for j, r2 in enumerate(responses):
                 if i < j:
                     similarity = agreement_matrix[r1.model][r2.model]
-                    if similarity < 0.5:  # Significant divergence
+                    if similarity < divergence_thresh:  # Significant divergence
                         divergences.append({
                             "models": [r1.model, r2.model],
                             "similarity": similarity,
@@ -414,6 +425,7 @@ class ConsensusEngine:
         # Simple clustering: group models with high pairwise similarity
         clusters = []
         assigned = set()
+        clustering_thresh = get_clustering_threshold()
 
         for r1 in responses:
             if r1.model in assigned:
@@ -425,7 +437,7 @@ class ConsensusEngine:
             for r2 in responses:
                 if r2.model in assigned:
                     continue
-                if agreement_matrix[r1.model][r2.model] >= 0.7:
+                if agreement_matrix[r1.model][r2.model] >= clustering_thresh:
                     cluster.append(r2.model)
                     assigned.add(r2.model)
 
@@ -741,12 +753,17 @@ Synthesized answer:"""
 
         avg_similarity = sum(similarities) / len(similarities) if similarities else 1.0
 
-        # Determine consensus level
-        if avg_similarity >= 0.85:
+        # Get configurable thresholds
+        high_thresh = get_high_threshold()
+        medium_thresh = get_medium_threshold()
+        low_thresh = get_low_threshold()
+
+        # Determine consensus level using configurable thresholds
+        if avg_similarity >= high_thresh:
             level = ConsensusLevel.HIGH
-        elif avg_similarity >= 0.6:
+        elif avg_similarity >= medium_thresh:
             level = ConsensusLevel.MEDIUM
-        elif avg_similarity >= 0.3:
+        elif avg_similarity >= low_thresh:
             level = ConsensusLevel.LOW
         else:
             if self._has_contradictions(responses):
