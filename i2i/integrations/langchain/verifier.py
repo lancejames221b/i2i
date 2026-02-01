@@ -196,16 +196,20 @@ class I2IVerifiedOutput:
     verified: bool
     consensus_level: str = "NONE"
     confidence_calibration: Optional[float] = None
+    confidence: Optional[float] = None  # Alias, synced in __post_init__
     task_category: Optional[str] = None
     consensus_appropriate: Optional[bool] = None
     models_queried: List[str] = field(default_factory=list)
-    
-    @property
-    def confidence(self) -> Optional[float]:
-        """Alias for confidence_calibration for backwards compatibility."""
-        return self.confidence_calibration
     original_metadata: Dict[str, Any] = field(default_factory=dict)
-    verification_details: Dict[str, Any] = field(default_factory=dict)
+    verification_details: Optional[Dict[str, Any]] = field(default_factory=dict)
+    original_content: Optional[str] = None
+    
+    def __post_init__(self):
+        """Sync confidence and confidence_calibration."""
+        if self.confidence is not None and self.confidence_calibration is None:
+            self.confidence_calibration = self.confidence
+        elif self.confidence_calibration is not None and self.confidence is None:
+            self.confidence = self.confidence_calibration
 
 
 class I2IVerifier(Runnable[Input, I2IVerifiedOutput]):
@@ -542,21 +546,47 @@ class I2IVerifier(Runnable[Input, I2IVerifiedOutput]):
             consensus_result = await self._aicp.consensus_query(
                 content,
                 models=self.models,
-                task_category=self.task_category if not self.task_aware else None,
+                task_category=self.task_category,
+                task_aware=self.task_aware,
             )
 
             # Extract results
             level = consensus_result.consensus_level
-            confidence = self._get_confidence_for_level(level)
+            # Use confidence from result if available, otherwise calculate
+            confidence = getattr(consensus_result, "confidence_calibration", None)
+            if confidence is None:
+                confidence = self._get_confidence_for_level(level)
 
             # Check task appropriateness
             task_cat = getattr(consensus_result, "task_category", None)
             consensus_appropriate = getattr(
                 consensus_result, "consensus_appropriate", True
             )
+            models_queried = getattr(consensus_result, "models_queried", [])
 
-            # Determine if verified
-            verified = confidence >= self.min_confidence
+            # Determine if verified based on confidence AND consensus level
+            level_order = {
+                ConsensusLevel.HIGH: 4,
+                ConsensusLevel.MEDIUM: 3,
+                ConsensusLevel.LOW: 2,
+                ConsensusLevel.NONE: 1,
+                ConsensusLevel.CONTRADICTORY: 0,
+            }
+            required_level_value = level_order.get(self.min_consensus_level, 0)
+            actual_level_value = level_order.get(level, 0)
+            level_ok = actual_level_value >= required_level_value
+            confidence_ok = confidence >= self.min_confidence
+            verified = level_ok and confidence_ok
+
+            # Build verification details
+            if self.include_verification_metadata:
+                verification_details = {
+                    "consensus_answer": getattr(consensus_result, "consensus_answer", None),
+                    "divergences": getattr(consensus_result, "divergences", []),
+                    "models_queried": models_queried,
+                }
+            else:
+                verification_details = None
 
             result = I2IVerifiedOutput(
                 content=content,
@@ -565,14 +595,9 @@ class I2IVerifier(Runnable[Input, I2IVerifiedOutput]):
                 confidence_calibration=confidence,
                 task_category=task_cat,
                 consensus_appropriate=consensus_appropriate,
-                models_queried=getattr(consensus_result, "models_queried", []),
+                models_queried=models_queried,
                 original_metadata=metadata,
-                verification_details={
-                    "consensus_answer": getattr(
-                        consensus_result, "consensus_answer", None
-                    ),
-                    "divergences": getattr(consensus_result, "divergences", []),
-                },
+                verification_details=verification_details,
             )
 
             if self.raise_on_failure and not verified:
@@ -696,6 +721,7 @@ class I2IVerificationCallback(BaseCallbackHandler):
         on_verification_failure: str = "warn",
         models: Optional[List[str]] = None,
         task_aware: bool = True,
+        protocol: Optional[AICP] = None,
     ):
         """
         Initialize the verification callback.
@@ -708,6 +734,7 @@ class I2IVerificationCallback(BaseCallbackHandler):
                 - "ignore": Silently continue.
             models: List of model IDs for consensus.
             task_aware: Whether to use task-aware routing.
+            protocol: Pre-configured AICP protocol instance.
 
         Raises:
             ValueError: If on_verification_failure is invalid.
@@ -717,6 +744,9 @@ class I2IVerificationCallback(BaseCallbackHandler):
             raise ValueError(
                 "on_verification_failure must be 'warn', 'raise', or 'ignore'"
             )
+        
+        self.on_failure = on_verification_failure  # Alias for tests
+        self._last_verification: Optional[I2IVerifiedOutput] = None
 
         self.min_consensus_level = min_consensus_level
         self.on_verification_failure = on_verification_failure
@@ -736,6 +766,7 @@ class I2IVerificationCallback(BaseCallbackHandler):
             min_confidence=threshold,
             task_aware=task_aware,
             raise_on_failure=(on_verification_failure == "raise"),
+            protocol=protocol,
         )
 
     def on_llm_end(self, response: LLMResult, **kwargs) -> None:
@@ -818,6 +849,7 @@ class I2IVerificationCallback(BaseCallbackHandler):
                 callback.clear_history()
         """
         self._verification_history.clear()
+        self._last_verification = None
 
 
 class I2IVerifiedChain:
@@ -884,7 +916,11 @@ class I2IVerifiedChain:
         threshold = level_thresholds.get(min_consensus_level, 0.60)
 
         self.verifier = I2IVerifier(
-            models=models, min_confidence=threshold, task_aware=task_aware, **kwargs
+            models=models,
+            min_confidence=threshold,
+            min_consensus_level=min_consensus_level,
+            task_aware=task_aware,
+            **kwargs
         )
 
     def invoke(self, input: Any, config: Optional[RunnableConfig] = None) -> I2IVerifiedOutput:
