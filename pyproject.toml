@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "i2i-mcip"
-version = "0.1.0"
+version = "0.2.1"
 description = "AI-to-AI Communication Protocol - Multi-model consensus, verification, and intelligent routing"
 readme = "README.md"
 license = {text = "MIT"}
@@ -51,8 +51,7 @@ dev = [
     "ruff>=0.1.0",
 ]
 langchain = [
-    "langchain-core>=0.2.0",
-    "langchain-openai>=0.1.0",
+    "langchain-core>=0.1.0",
 ]
 
 [project.scripts]
@@ -78,10 +77,6 @@ include = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-v"
-markers = [
-    "e2e: marks tests as end-to-end (requires API keys)",
-    "slow: marks tests as slow (may take >10 seconds)",
-]
 
 [tool.coverage.run]
 source = ["i2i"]

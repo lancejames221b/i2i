@@ -926,6 +926,46 @@ protocol = AICP()
 
 ---
 
+## Integrations
+
+### LangChain
+
+i2i integrates with [LangChain](https://langchain.com) to add multi-model consensus verification to your LCEL pipelines.
+
+```bash
+pip install i2i-mcip[langchain]
+```
+
+```python
+from i2i.integrations.langchain import I2IVerifier
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+
+# Create a verified chain
+llm = ChatOpenAI(model="gpt-4")
+prompt = ChatPromptTemplate.from_template("Answer: {question}")
+
+chain = prompt | llm | I2IVerifier(min_confidence=0.8)
+
+# Responses are automatically verified via multi-model consensus
+result = chain.invoke({"question": "What is the capital of France?"})
+
+print(result.verified)           # True
+print(result.consensus_level)    # "HIGH"
+print(result.confidence_calibration)  # 0.95
+```
+
+**Key features:**
+- Drop-in `Runnable` for LCEL chains
+- Task-aware verification (skips consensus for math/reasoning where it hurts)
+- Calibrated confidence scores based on empirical evaluation
+- Callback handler for automatic verification of all LLM outputs
+- RAG hallucination detection
+
+For full documentation, see [docs/integrations/langchain.md](./docs/integrations/langchain.md).
+
+---
+
 ## RFC Specification
 
 For the formal protocol specification, see [RFC-MCIP.md](./RFC-MCIP.md).
