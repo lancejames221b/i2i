@@ -7,7 +7,8 @@ name = "i2i-mcip"
 version = "0.2.1"
 description = "AI-to-AI Communication Protocol - Multi-model consensus, verification, and intelligent routing"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+license_files = ["LICENSE"]
 requires-python = ">=3.9"
 authors = [
     {name = "Lance James", email = "lance@unit221b.com"}
@@ -23,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
@@ -91,7 +93,7 @@ exclude_lines = [
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312", "py313"]
+target-version = ["py39", "py310", "py311", "py312", "py313", "py314"]
 
 [tool.ruff]
 line-length = 100
