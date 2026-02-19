@@ -88,6 +88,7 @@ class OpenAIAdapter(ProviderAdapter):
     def available_models(self) -> List[str]:
         return [
             # GPT-5.x Series (Flagship - Dec 2025)
+            "gpt-5.3-codex",              # Codex 5.3 coding/reasoning model
             "gpt-5.2",                    # Latest flagship model
             "gpt-5.2-chat-latest",        # ChatGPT optimized
             "gpt-5",                      # Previous flagship (aliases to gpt-5-2025-08-07)
