@@ -5,21 +5,30 @@
     "consensus": [
       "gpt-5.3-codex",
       "claude-sonnet-4-6",
+      "claude-opus-4-6",
+      "gemini-3-pro-preview",
       "gemini-3-flash-preview"
     ],
     "classifier": "claude-haiku-4-5-20251001",
     "synthesis": [
       "gpt-5.3-codex",
       "claude-sonnet-4-6",
+      "claude-opus-4-6",
+      "gemini-3-pro-preview",
       "gemini-3-flash-preview"
     ],
     "verification": [
       "gpt-5.3-codex",
-      "claude-sonnet-4-6"
+      "claude-sonnet-4-6",
+      "claude-opus-4-6",
+      "gemini-3-pro-preview",
+      "gemini-3-flash-preview"
     ],
     "epistemic": [
       "claude-sonnet-4-6",
+      "claude-opus-4-6",
       "gpt-5.3-codex",
+      "gemini-3-pro-preview",
       "gemini-3-flash-preview"
     ]
   },
