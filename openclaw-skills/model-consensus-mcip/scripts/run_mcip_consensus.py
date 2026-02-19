@@ -22,12 +22,12 @@ if str(I2I_ROOT) not in sys.path:
 
 async def run(query: str, models: list[str] | None) -> int:
     try:
-        from i2i.protocol import Protocol
+        from i2i.protocol import AICP
     except Exception as exc:
         print(json.dumps({"error": f"Failed to import i2i Protocol: {exc}"}, indent=2))
         return 1
 
-    protocol = Protocol()
+    protocol = AICP()
 
     try:
         result = await protocol.consensus_query(query=query, models=models)
