@@ -29,7 +29,7 @@ VISION_CAPABLE_MODELS = {
     "gpt-4o", "gpt-4o-mini",
     "o3", "o3-pro", "o4-mini",
     # Anthropic
-    "claude-opus-4-5-20251101", "claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001",
+    "claude-opus-4-5-20251101", "claude-sonnet-4-6", "claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001",
     "claude-opus-4-20250514", "claude-sonnet-4-20250514",
     "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022",
     "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307",
@@ -223,7 +223,8 @@ class AnthropicAdapter(ProviderAdapter):
     def available_models(self) -> List[str]:
         return [
             "claude-opus-4-5-20251101",    # Most intelligent (Nov 2025)
-            "claude-sonnet-4-5-20250929",  # Best for agents & coding (Sep 2025)
+            "claude-sonnet-4-6",           # Best for agents & coding (current)
+            "claude-sonnet-4-5-20250929",  # Previous stable Sonnet
             "claude-haiku-4-5-20251001",   # Fastest (Oct 2025)
             "claude-opus-4-20250514",      # Legacy
             "claude-sonnet-4-20250514",    # Legacy

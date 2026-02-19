@@ -4,21 +4,21 @@
   "models": {
     "consensus": [
       "gpt-5.2",
-      "claude-sonnet-4-5-20250929",
+      "claude-sonnet-4-6",
       "gemini-3-flash-preview"
     ],
     "classifier": "claude-haiku-4-5-20251001",
     "synthesis": [
       "gpt-5.2",
-      "claude-sonnet-4-5-20250929",
+      "claude-sonnet-4-6",
       "gemini-3-flash-preview"
     ],
     "verification": [
       "gpt-5.2",
-      "claude-sonnet-4-5-20250929"
+      "claude-sonnet-4-6"
     ],
     "epistemic": [
-      "claude-sonnet-4-5-20250929",
+      "claude-sonnet-4-6",
       "gpt-5.2",
       "gemini-3-flash-preview"
     ]
